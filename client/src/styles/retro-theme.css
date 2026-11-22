@@ -1,0 +1,464 @@
+/* =========================================================
+   하플 상회 레트로 테마 (공통 디자인 시스템)
+   회원가입·로그인 등 세계관 페이지가 함께 사용해요.
+   - 페이지 최상위 요소에 className="retro-page" 를 붙이면 색상 토큰과 배경이 적용돼요.
+   - 색상·폰트 토큰만 필요하면(헤더·푸터 등) className="retro-scope" 를 붙여요.
+   - 양피지 서류: .permit-sheet / 두루마리 배너: .permit-banner
+   - 입력칸: .permit-field / 오류 인장: .permit-error / 버튼: .pixel-btn, .pixel-btn-seal
+   ========================================================= */
+
+/* 색상·폰트 토큰 */
+.retro-page,
+.retro-scope {
+  /* 색상 (16비트 팔레트) */
+  --ink: #1e1b18; /* 만년필 잉크 (입력 글씨) */
+  --ink-brown: #3b2414; /* 라벨, 제목 */
+  --ink-faded: #7a5a3a; /* 보조 글씨 */
+  --parchment: #efe1bf; /* 양피지 */
+  --parchment-light: #f7edd2;
+  --parchment-dark: #d9c49a;
+  --gold: #e8c25a;
+  --gold-dark: #a8782a;
+  --purple: #5b2a6e;
+  --navy: #1f2b5e;
+  --night: #14213d; /* 밤바다 배경 */
+  --seal-red: #9b1c1c;
+  --seal-red-light: #c94a3a;
+  --seal-red-dark: #5e0f0f;
+
+  --font-serif: 'Noto Serif KR', 'Cinzel', serif;
+  --font-latin: 'Cinzel', 'Noto Serif KR', serif;
+  --font-pixel: 'Galmuri11', 'DungGeunMo', monospace;
+}
+
+/* 세계관 페이지 전체 화면 배치 + 밤바다 배경 */
+.retro-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(28px, 6vw, 64px) 16px;
+
+  /* 밤바다 느낌의 픽셀 디더링 배경 */
+  background-color: var(--night);
+  background-image:
+    linear-gradient(180deg, rgba(228, 236, 244, 0.12) 0%, transparent 35%),
+    repeating-conic-gradient(#1b2b50 0 25%, #14213d 0 50%);
+  background-size:
+    100% 100%,
+    4px 4px;
+}
+
+/* 화면 낭독기 전용 (화면에는 안 보임) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* =========================================================
+   픽셀 버튼
+   ========================================================= */
+.pixel-btn {
+  display: inline-block;
+  padding: 12px 22px;
+  border: 0;
+  font-family: var(--font-pixel);
+  font-size: clamp(15px, 2.2vw, 18px);
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  text-align: center;
+  cursor: pointer;
+  color: #ffffff;
+  background: #000000;
+  /* 계단 모양 픽셀 테두리 */
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 4px #000000;
+  transition: transform 80ms steps(2);
+}
+
+.pixel-btn:hover,
+.pixel-btn:focus-visible {
+  color: #000000;
+  background: #ffffff;
+  outline: none;
+}
+
+.pixel-btn:active {
+  transform: translate(2px, 2px);
+}
+
+.pixel-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+  transform: none;
+}
+
+/* 붉은 밀랍 인장 버튼 (날인하기) */
+.pixel-btn-seal {
+  color: #fbeed2;
+  background: var(--seal-red);
+  box-shadow:
+    inset -3px -3px 0 var(--seal-red-dark),
+    inset 3px 3px 0 var(--seal-red-light),
+    0 0 0 2px #2a0a0a,
+    4px 4px 0 2px rgba(42, 10, 10, 0.35);
+}
+
+.pixel-btn-seal:hover,
+.pixel-btn-seal:focus-visible {
+  color: #ffffff;
+  background: #b02424;
+}
+
+.pixel-btn-seal:active {
+  box-shadow:
+    inset 3px 3px 0 var(--seal-red-dark),
+    0 0 0 2px #2a0a0a;
+}
+
+/* =========================================================
+   양피지 서류
+   ========================================================= */
+.permit-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  margin-top: 28px; /* 배너가 위로 튀어나온 만큼 */
+  color: var(--ink-brown);
+  border: 4px solid var(--gold);
+
+  /* 양피지 질감: 얼룩 + 미세한 결 */
+  background-color: var(--parchment);
+  background-image:
+    radial-gradient(ellipse at 15% 10%, rgba(255, 250, 230, 0.7), transparent 45%),
+    radial-gradient(ellipse at 85% 90%, rgba(150, 110, 60, 0.22), transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(150, 110, 60, 0.08), transparent 30%),
+    repeating-linear-gradient(0deg, rgba(120, 90, 50, 0.04) 0 1px, transparent 1px 3px);
+
+  /* 금색 → 자주색 → 남색 → 검정으로 겹친 도트 테두리 + 안쪽 장식선 */
+  box-shadow:
+    inset 0 0 0 3px var(--parchment-light),
+    inset 0 0 0 5px var(--gold-dark),
+    inset 0 0 40px rgba(120, 80, 30, 0.35),
+    0 0 0 4px var(--purple),
+    0 0 0 8px var(--navy),
+    0 0 0 10px #000000,
+    10px 10px 0 10px rgba(0, 0, 0, 0.45);
+
+  animation: sheet-in 600ms ease both;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+/* 아래쪽 두 모서리의 금색 도트 장식 (위쪽은 배너가 장식 역할) */
+.permit-sheet::before,
+.permit-sheet::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  width: 8px;
+  height: 8px;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px var(--navy);
+  z-index: 1;
+}
+
+.permit-sheet::before {
+  left: 10px;
+}
+
+.permit-sheet::after {
+  right: 10px;
+}
+
+/* --- 상단 양피지 두루마리 배너 --- */
+.permit-banner {
+  position: relative;
+  margin: -36px 28px 0;
+  padding: 14px 20px 12px;
+  text-align: center;
+  background: linear-gradient(180deg, var(--parchment-light), var(--parchment-dark));
+  border-top: 3px solid var(--gold-dark);
+  border-bottom: 3px solid var(--gold-dark);
+  box-shadow:
+    0 0 0 2px var(--purple),
+    0 4px 0 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 두루마리 양 끝의 말린 부분 */
+.permit-banner::before,
+.permit-banner::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 14px;
+  background: linear-gradient(90deg, var(--gold-dark), var(--parchment-dark) 45%, var(--gold-dark));
+  box-shadow: 0 0 0 2px var(--purple);
+}
+
+.permit-banner::before {
+  left: -16px;
+}
+
+.permit-banner::after {
+  right: -16px;
+}
+
+.permit-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(18px, 4.2vw, 27px);
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: var(--ink-brown);
+  word-break: keep-all;
+  text-shadow: 1px 1px 0 rgba(255, 250, 230, 0.8);
+}
+
+.permit-subtitle {
+  margin: 4px 0 0;
+  font-family: var(--font-latin);
+  font-weight: 600;
+  font-size: clamp(9px, 1.6vw, 11px);
+  letter-spacing: 0.18em;
+  color: var(--purple);
+}
+
+.permit-body {
+  position: relative;
+  padding: clamp(20px, 5vw, 36px) clamp(18px, 6vw, 48px) clamp(28px, 5vw, 40px);
+}
+
+.permit-intro {
+  margin: 0 0 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px dashed rgba(122, 90, 58, 0.45);
+  font-family: var(--font-serif);
+  font-size: clamp(13px, 2vw, 15px);
+  line-height: 1.75;
+  color: var(--ink-faded);
+  word-break: keep-all;
+}
+
+.mark-required {
+  color: var(--seal-red);
+}
+
+/* =========================================================
+   폼 (보는 글씨는 세리프, 쓰는 글씨는 픽셀 폰트)
+   ========================================================= */
+.permit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.permit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 보는 글씨: 고풍스러운 세리프 */
+.permit-field label {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: clamp(15px, 2.3vw, 17px);
+  color: var(--ink-brown);
+}
+
+.label-sub {
+  font-weight: 400;
+  font-size: 0.85em;
+  color: var(--ink-faded);
+}
+
+/* 쓰는 글씨: 픽셀 폰트 + 만년필 잉크색 */
+.permit-field input {
+  width: 100%;
+  padding: 10px 6px 8px;
+  border: 0;
+  border-bottom: 2px dashed rgba(122, 90, 58, 0.7);
+  border-radius: 0;
+  font-family: var(--font-pixel);
+  font-size: 16px; /* 16px 미만이면 아이폰에서 입력 시 화면이 확대돼요 */
+  color: var(--ink);
+  caret-color: var(--ink);
+  background-color: rgba(255, 250, 235, 0.45);
+  /* 포커스 때 왼쪽에서 오른쪽으로 번지는 잉크 밑줄 */
+  background-image: linear-gradient(var(--ink), var(--ink));
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 0% 2px;
+  transition:
+    background-size 450ms ease,
+    background-color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.permit-field input::placeholder {
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  color: #a08868;
+  opacity: 1;
+}
+
+.permit-field input:focus {
+  outline: none;
+  border-bottom-color: transparent;
+  background-color: rgba(255, 250, 235, 0.85);
+  background-size: 100% 2px;
+  /* 잉크가 종이에 스미듯 은은하게 번지는 그림자 */
+  box-shadow:
+    0 6px 10px -7px rgba(30, 27, 24, 0.65),
+    inset 0 -10px 14px -12px rgba(30, 27, 24, 0.35);
+}
+
+.permit-field input[aria-invalid='true'] {
+  border-bottom: 2px solid var(--seal-red);
+  background-color: rgba(201, 74, 58, 0.06);
+}
+
+.permit-field input[aria-invalid='true']:focus {
+  background-image: linear-gradient(var(--seal-red), var(--seal-red));
+}
+
+/* --- 오류 메시지: 붉은 인장으로 찍은 듯한 잉크 --- */
+.permit-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--seal-red);
+  text-shadow: 0 0 1px rgba(155, 28, 28, 0.35); /* 잉크가 살짝 번진 느낌 */
+  animation: ink-stamp 260ms ease-out both;
+}
+
+/* 작은 붉은 인장 */
+.permit-error::before {
+  content: '印';
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--seal-red);
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 1;
+  transform: rotate(-12deg);
+  opacity: 0.85;
+}
+
+.permit-error-box {
+  padding: 10px 12px;
+  border: 2px dashed var(--seal-red);
+  background: rgba(201, 74, 58, 0.06);
+}
+
+@keyframes ink-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+.permit-submit {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+/* =========================================================
+   반응형
+   ========================================================= */
+
+/* 태블릿 이하 */
+@media (max-width: 720px) {
+  .permit-banner {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+}
+
+/* 휴대폰 */
+@media (max-width: 480px) {
+  .retro-page {
+    padding-left: 16px;
+    padding-right: 16px;
+    align-items: flex-start;
+  }
+
+  /* 테두리를 얇게 해서 입력 공간 확보 */
+  .permit-sheet {
+    border-width: 3px;
+    box-shadow:
+      inset 0 0 0 2px var(--parchment-light),
+      inset 0 0 0 4px var(--gold-dark),
+      inset 0 0 30px rgba(120, 80, 30, 0.35),
+      0 0 0 3px var(--purple),
+      0 0 0 6px var(--navy),
+      0 0 0 8px #000000;
+  }
+
+  .permit-banner {
+    margin: -32px 14px 0;
+    padding: 12px 12px 10px;
+  }
+
+  .permit-banner::before,
+  .permit-banner::after {
+    width: 10px;
+  }
+
+  .permit-banner::before {
+    left: -12px;
+  }
+
+  .permit-banner::after {
+    right: -12px;
+  }
+
+  .permit-field input::placeholder {
+    font-size: 13px;
+  }
+}
+
+/* 움직임 줄이기 설정을 켠 사용자: 애니메이션 끄기 */
+@media (prefers-reduced-motion: reduce) {
+  .retro-page *,
+  .retro-page *::before,
+  .retro-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

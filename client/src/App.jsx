@@ -1,0 +1,39 @@
+// 주소(URL)별로 어떤 페이지를 보여줄지 정해요.
+// 새 페이지를 만들면 여기에 <Route>를 추가하세요.
+// 예) <Route path="products/:id" element={<ProductDetailPage />} />
+import { Route, Routes } from 'react-router-dom'
+import Layout from './components/Layout.jsx'
+import HomePage from './pages/HomePage.jsx'
+import SignupPage from './pages/SignupPage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
+import NotFoundPage from './pages/NotFoundPage.jsx'
+import ComingSoonPage from './pages/ComingSoonPage.jsx'
+import HarborPage from './pages/HarborPage.jsx'
+
+function App() {
+  return (
+    <Routes>
+      {/* Layout(헤더, 푸터) 안에 각 페이지가 들어가요. */}
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
+        <Route path="harbor" element={<HarborPage />} />
+
+        {/* 헤더 메뉴 - 아직 만들지 않은 페이지는 "정비 중" 안내 */}
+        <Route path="shop" element={<ComingSoonPage title="진열장" />} />
+        <Route path="picks" element={<ComingSoonPage title="점장 추천상품" />} />
+        <Route path="cart" element={<ComingSoonPage title="장바구니" />} />
+        <Route path="orders" element={<ComingSoonPage title="주문 내역" />} />
+        <Route path="mypage" element={<ComingSoonPage title="내 정보" />} />
+        <Route path="admin" element={<ComingSoonPage title="상회 관리" />} />
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+
+      {/* 헤더·푸터 없이 전체 화면으로 보여주는 페이지 */}
+      <Route path="signup" element={<SignupPage />} />
+      <Route path="login" element={<LoginPage />} />
+    </Routes>
+  )
+}
+
+export default App

@@ -1,0 +1,46 @@
+/* "정비 중" 안내 페이지 (공통 틀의 양피지 본문 위에 표시) */
+.coming-soon {
+  text-align: center;
+}
+
+.coming-soon-badge {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 4px 12px;
+  font-family: var(--font-pixel);
+  font-size: 14px;
+  font-weight: 700;
+  color: #000000;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px #000000;
+}
+
+.coming-soon-title {
+  margin: 0 0 16px;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(24px, 5vw, 34px);
+  color: var(--ink-brown);
+}
+
+.coming-soon-text {
+  margin: 0 0 28px;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--ink-faded);
+  word-break: keep-all;
+}
+
+.coming-soon-link {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  color: var(--purple);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.coming-soon-link:hover,
+.coming-soon-link:focus-visible {
+  color: var(--seal-red);
+}

@@ -1,0 +1,221 @@
+/* =========================================================
+   메인 타이틀 화면 (옛 게임 시작 화면 느낌)
+   글자 크기는 화면 너비에 비례하도록 cqw(타이틀 화면 너비의 1%) 단위를 써요.
+   (1280px 시안 기준: 1cqw = 12.8px)
+   ========================================================= */
+
+/* 공통 틀의 양피지 본문 대신, 가장자리까지 꽉 찬 검은 화면 */
+.main > .title-page {
+  max-width: none;
+  padding: 0;
+  background: #05081a;
+}
+
+.title-screen {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  container-type: inline-size; /* 안쪽 글자가 이 상자 너비에 맞춰 커지고 작아져요 */
+  overflow: hidden;
+}
+
+.title-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+.title-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 그림 움직임 (16비트 느낌으로 뚝뚝 끊기게) */
+.title-art .sail {
+  animation: title-sail 2s steps(1) infinite;
+}
+
+.title-art .waves {
+  animation: blink 1.2s steps(1) infinite;
+}
+
+@keyframes title-sail {
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+/* --- 타이틀 --- */
+.title-heading {
+  position: absolute;
+  top: 2.4cqw;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5cqw;
+  pointer-events: none;
+  text-align: center;
+}
+
+.title-en,
+.title-sub {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: max(11px, 1.56cqw);
+  color: #ffffff;
+  text-shadow: 0.15em 0.15em 0 #1f2b5e;
+}
+
+.title-en {
+  letter-spacing: 0.4em;
+}
+
+.title-name {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: max(40px, 9.4cqw);
+  line-height: 1.05;
+  letter-spacing: 0.08em;
+  color: #ffd966;
+  /* 붉은 외곽선 + 진한 그림자 (글자 크기에 비례) */
+  text-shadow:
+    0.042em 0 0 #8a1f2b,
+    -0.042em 0 0 #8a1f2b,
+    0 0.042em 0 #8a1f2b,
+    0 -0.042em 0 #8a1f2b,
+    0.042em 0.042em 0 #8a1f2b,
+    -0.042em -0.042em 0 #8a1f2b,
+    0.042em -0.042em 0 #8a1f2b,
+    -0.042em 0.042em 0 #8a1f2b,
+    0.09em 0.09em 0 #1a0a0a;
+}
+
+/* --- 안내 창 + 입항 버튼 (넓은 화면: 그림 오른쪽 아래에 겹쳐요) --- */
+.title-panel {
+  position: absolute;
+  right: 4cqw;
+  top: 36.5cqw;
+  width: 33cqw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3.2cqw;
+}
+
+.title-tagline {
+  align-self: stretch;
+  margin: 0;
+  padding: 1.4cqw 1.7cqw;
+  font-family: var(--font-pixel);
+  font-size: max(13px, 1.4cqw);
+  line-height: 1.75;
+  word-break: keep-all;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.82);
+  box-shadow:
+    0 -3px 0 0 #ffffff,
+    0 3px 0 0 #ffffff,
+    -3px 0 0 0 #ffffff,
+    3px 0 0 0 #ffffff,
+    0 -6px 0 0 #000000,
+    0 6px 0 0 #000000,
+    -6px 0 0 0 #000000,
+    6px 0 0 0 #000000;
+}
+
+.title-tagline strong {
+  color: #ffd966;
+}
+
+/* 입항하기: 금색 픽셀 버튼 + 깜빡이는 ▶ */
+.title-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.55em 1.4em;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: max(16px, 1.9cqw);
+  color: #1e1b18;
+  text-decoration: none;
+  background: var(--gold);
+  box-shadow:
+    inset -4px -4px 0 var(--gold-dark),
+    inset 4px 4px 0 #fff1b8,
+    0 0 0 4px #000000,
+    6px 6px 0 4px rgba(0, 0, 0, 0.5);
+  transition: transform 80ms steps(2);
+}
+
+.title-start:hover {
+  background: #f2d276;
+}
+
+.title-start:active {
+  transform: translate(3px, 3px);
+}
+
+.title-start:focus-visible {
+  outline: 3px dashed #ffffff;
+  outline-offset: 10px;
+}
+
+.title-start-cursor {
+  font-size: 0.8em;
+  animation: blink 1s steps(1) infinite;
+}
+
+/* --- 하단 표기 --- */
+.title-copy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1.1cqw;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-pixel);
+  font-size: max(11px, 1.1cqw);
+  color: #c9d1f0;
+  text-shadow: 2px 2px 0 #000000;
+}
+
+/* =========================================================
+   휴대폰·좁은 화면: 안내 창과 버튼을 그림 아래로 내려요
+   ========================================================= */
+@media (max-width: 720px) {
+  .title-panel {
+    position: static;
+    width: auto;
+    padding: 28px 22px 20px;
+    gap: 28px;
+  }
+
+  .title-tagline {
+    padding: 16px 18px;
+    font-size: 15px;
+  }
+
+  .title-start {
+    font-size: 18px;
+  }
+
+  .title-copy {
+    position: static;
+    padding: 0 16px 18px;
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .title-art .sail,
+  .title-art .waves,
+  .title-start-cursor {
+    animation: none;
+  }
+}

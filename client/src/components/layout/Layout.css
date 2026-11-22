@@ -1,0 +1,650 @@
+/* =========================================================
+   하플 상회 공통 틀: 헤더 · 본문 · 푸터 (16비트 도트 게임 스타일)
+   색상·폰트 토큰은 styles/retro-theme.css 의 .retro-scope 에서 가져와요.
+   ========================================================= */
+
+.layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--night);
+  font-family: var(--font-pixel);
+}
+
+/* 본문: 양피지 바탕 (페이지 내용이 들어가는 곳) */
+.main {
+  flex: 1;
+  width: 100%;
+  background-color: var(--parchment);
+  background-image:
+    radial-gradient(ellipse at 10% 0%, rgba(255, 250, 230, 0.6), transparent 40%),
+    radial-gradient(ellipse at 90% 100%, rgba(150, 110, 60, 0.18), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(120, 90, 50, 0.04) 0 1px, transparent 1px 3px);
+  color: var(--ink-brown);
+}
+
+.main > * {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: clamp(24px, 4vw, 40px) 16px;
+}
+
+/* =========================================================
+   공통 부품
+   ========================================================= */
+
+/* RPG 창: 검은 바탕 + 모서리가 깎인 흰 픽셀 테두리 */
+.px-window {
+  background: #000000;
+  color: #ffffff;
+  box-shadow:
+    0 -3px 0 0 #ffffff,
+    0 3px 0 0 #ffffff,
+    -3px 0 0 0 #ffffff,
+    3px 0 0 0 #ffffff,
+    0 -6px 0 0 #000000,
+    0 6px 0 0 #000000,
+    -6px 0 0 0 #000000,
+    6px 0 0 0 #000000;
+}
+
+/* 나무 판자 질감 */
+.site-sign,
+.site-footer-board {
+  background-color: #7a4a22;
+  background-image: repeating-linear-gradient(180deg, #8a5a2b 0 13px, #6b4220 13px 16px);
+}
+
+/* 헤더용 픽셀 버튼 */
+.site-btn {
+  display: inline-block;
+  padding: 9px 16px;
+  border: 0;
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  text-decoration: none;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 80ms steps(2);
+}
+
+.site-btn:active {
+  transform: translate(2px, 2px);
+}
+
+.site-btn:focus-visible {
+  outline: 2px dashed var(--gold);
+  outline-offset: 8px;
+}
+
+.site-btn.px-window:hover {
+  color: var(--gold);
+}
+
+/* 입항: 금색 버튼 */
+.site-btn-gold {
+  color: #1e1b18;
+  background: var(--gold);
+  box-shadow:
+    inset -3px -3px 0 var(--gold-dark),
+    inset 3px 3px 0 #fff1b8,
+    0 0 0 3px #000000;
+}
+
+.site-btn-gold:hover {
+  background: #f2d276;
+}
+
+/* 출항: 붉은 인장 버튼 */
+.site-btn-seal {
+  color: #fbeed2;
+  background: var(--seal-red);
+  box-shadow:
+    inset -3px -3px 0 var(--seal-red-dark),
+    inset 3px 3px 0 var(--seal-red-light),
+    0 0 0 3px #000000;
+}
+
+.site-btn-seal:hover {
+  background: #b02424;
+}
+
+/* =========================================================
+   헤더
+   ========================================================= */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: #0d1430;
+  background-image: repeating-conic-gradient(#121b3d 0 25%, #0d1430 0 50%);
+  background-size: 4px 4px;
+  /* 아래쪽 금색 → 자주색 → 검정 픽셀 띠 */
+  box-shadow:
+    0 4px 0 var(--gold),
+    0 8px 0 var(--purple),
+    0 12px 0 #000000;
+  margin-bottom: 12px;
+}
+
+.site-header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px 14px;
+  display: flex;
+  align-items: flex-end;
+  gap: 32px;
+}
+
+/* --- 나무 간판 로고 --- */
+.site-logo {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+}
+
+.site-chains {
+  display: flex;
+  justify-content: space-between;
+  width: 236px;
+  height: 16px;
+}
+
+.site-chain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.site-chain > span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  background: #9aa3b5;
+  box-shadow: 0 0 0 2px #2b2f3d;
+}
+
+.site-sign {
+  position: relative;
+  width: 280px;
+  height: 66px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  box-shadow:
+    inset 3px 3px 0 #b07a3e,
+    inset -3px -3px 0 #4a2a12,
+    0 0 0 3px #000000,
+    6px 6px 0 3px rgba(0, 0, 0, 0.45);
+  transition: transform 80ms steps(2);
+}
+
+/* 간판 네 모서리의 금색 못 */
+.site-sign::before,
+.site-sign::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  width: 4px;
+  height: 4px;
+  background: var(--gold);
+  box-shadow: 0 50px 0 var(--gold);
+}
+
+.site-sign::before {
+  left: 6px;
+}
+
+.site-sign::after {
+  right: 6px;
+}
+
+.site-logo:hover .site-sign {
+  transform: rotate(-1deg);
+}
+
+.site-logo:focus-visible {
+  outline: none;
+}
+
+.site-logo:focus-visible .site-sign {
+  box-shadow:
+    inset 3px 3px 0 #b07a3e,
+    inset -3px -3px 0 #4a2a12,
+    0 0 0 3px #000000,
+    0 0 0 6px var(--gold);
+}
+
+.site-logo-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+}
+
+.site-logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.site-logo-name {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 2px;
+  color: #ffd966;
+  text-shadow: 3px 3px 0 #2a1608;
+}
+
+.site-logo-sub {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: #f4ecd8;
+  text-shadow: 2px 2px 0 #2a1608;
+}
+
+/* --- 메뉴 영역 (명령 창 + 로그인 상태) --- */
+.site-menu {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 14px;
+}
+
+.site-nav {
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.site-nav-link {
+  position: relative;
+  padding: 2px 6px 2px 22px;
+  font-family: var(--font-pixel);
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.site-nav-link:hover,
+.site-nav-link:focus-visible,
+.site-nav-link.is-active {
+  color: #ffd966;
+  outline: none;
+}
+
+/* 고르는 메뉴 앞에 ▶ 커서 (현재 페이지는 깜빡여요) */
+.site-nav-link:hover::before,
+.site-nav-link:focus-visible::before,
+.site-nav-link.is-active::before {
+  content: '▶';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+}
+
+.site-nav-link.is-active::before {
+  animation: blink 1s steps(1) infinite;
+}
+
+/* --- 로그인 상태 --- */
+.site-auth {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex: none;
+}
+
+/* 상태 창 (상인 이름) */
+.site-account {
+  position: relative;
+}
+
+.site-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border: 0;
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.site-user strong {
+  color: #ffd966;
+}
+
+.site-user-caret {
+  font-size: 11px;
+  color: #ffd966;
+  transition: transform 120ms steps(2);
+}
+
+.site-user:focus-visible {
+  outline: 2px dashed var(--gold);
+  outline-offset: 8px;
+}
+
+/* 드롭다운: 평소에는 숨기고, 마우스를 올리거나(:hover) 포커스가 있거나(:focus-within) 눌렀을 때(.is-open) 보여요 */
+.site-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  min-width: 100%;
+  padding-top: 16px; /* 상태 창과 드롭다운 사이 빈틈: 마우스가 지나가도 닫히지 않게 */
+  z-index: 60;
+}
+
+.site-account:hover .site-dropdown,
+.site-account:focus-within .site-dropdown,
+.site-account.is-open .site-dropdown {
+  display: block;
+}
+
+.site-account:hover .site-user-caret,
+.site-account:focus-within .site-user-caret,
+.site-account.is-open .site-user-caret {
+  transform: rotate(180deg);
+}
+
+.site-dropdown-list {
+  margin: 0;
+  padding: 10px 0;
+  list-style: none;
+}
+
+.site-dropdown-link {
+  position: relative;
+  display: block;
+  padding: 8px 18px 8px 34px;
+  font-family: var(--font-pixel);
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* 고르는 항목 앞에 ▶ 커서 (RPG 메뉴처럼) */
+.site-dropdown-link:hover,
+.site-dropdown-link:focus-visible,
+.site-dropdown-link.is-active {
+  color: #ffd966;
+  outline: none;
+}
+
+.site-dropdown-link:hover::before,
+.site-dropdown-link:focus-visible::before,
+.site-dropdown-link.is-active::before {
+  content: '▶';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  animation: blink 1s steps(1) infinite;
+}
+
+/* 관리자 메뉴: 점선 아래 붉은 글자 */
+.site-dropdown-sep {
+  margin: 6px 14px;
+  border-top: 3px dotted #6b7394;
+}
+
+.site-dropdown-admin {
+  color: #ff9a8a;
+}
+
+/* 휴대폰용 메뉴 버튼 (넓은 화면에서는 숨김) */
+.site-menu-toggle {
+  display: none;
+}
+
+/* =========================================================
+   푸터
+   ========================================================= */
+.site-footer {
+  margin-top: 12px;
+  color: #ffffff;
+}
+
+.site-footer-waves {
+  display: block;
+  width: 100%;
+  height: 32px;
+}
+
+.site-footer-board {
+  box-shadow:
+    inset 0 4px 0 #000000,
+    inset 0 7px 0 var(--gold);
+}
+
+.site-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 22px 26px;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) 260px;
+  gap: 36px;
+  align-items: center;
+}
+
+.site-footer-brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.site-footer-compass {
+  flex: none;
+  width: 60px;
+  height: 60px;
+  background: #f4ecd8;
+  box-shadow:
+    0 0 0 3px #2a1608,
+    4px 4px 0 3px rgba(0, 0, 0, 0.4);
+}
+
+.site-footer-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  font-weight: 700;
+  font-size: 22px;
+  color: #ffd966;
+  text-shadow: 3px 3px 0 #2a1608;
+}
+
+.site-footer-ship {
+  width: 22px;
+  height: 22px;
+}
+
+.site-footer-en {
+  margin: 0;
+  font-size: 12px;
+  color: #f4ecd8;
+  text-shadow: 2px 2px 0 #2a1608;
+}
+
+.site-footer-info,
+.site-footer-sea {
+  padding: 14px 20px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.site-footer-info p,
+.site-footer-sea p {
+  margin: 0;
+  word-break: keep-all;
+}
+
+.site-footer-info p + p {
+  margin-top: 4px;
+}
+
+.site-footer-label {
+  color: #ffd966;
+}
+
+.site-footer-copy {
+  background: #0d1430;
+}
+
+.site-footer-copy p {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 22px;
+  font-size: 12px;
+  color: #9aa3c8;
+  word-break: keep-all;
+}
+
+/* =========================================================
+   반응형
+   ========================================================= */
+
+/* 태블릿 이하: 메뉴를 접고 [☰ 항해 메뉴] 버튼으로 펼치기 */
+@media (max-width: 900px) {
+  .site-header-inner {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+  }
+
+  .site-menu-toggle {
+    display: inline-block;
+    margin: 0 6px 14px 0;
+    padding: 8px 12px;
+    border: 0;
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .site-menu {
+    display: none;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 22px;
+    margin: 0 6px 6px;
+  }
+
+  .site-menu.is-open {
+    display: flex;
+  }
+
+  .site-nav {
+    flex-direction: column;
+  }
+
+  .site-auth {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+  }
+
+  .site-auth > .site-btn {
+    align-self: flex-start;
+  }
+
+  /* 휴대폰 메뉴 안에서는 드롭다운을 접지 않고 목록으로 펼쳐 보여줘요 */
+  .site-user {
+    width: 100%;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .site-user-caret {
+    display: none;
+  }
+
+  .site-dropdown {
+    display: block;
+    position: static;
+    padding-top: 12px;
+  }
+
+  .site-footer-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .site-footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+/* 휴대폰 */
+@media (max-width: 520px) {
+  .site-chains {
+    width: 180px;
+    height: 12px;
+  }
+
+  .site-sign {
+    width: 216px;
+    height: 54px;
+    gap: 8px;
+    padding: 0 14px;
+  }
+
+  .site-sign::before,
+  .site-sign::after {
+    box-shadow: 0 38px 0 var(--gold);
+  }
+
+  .site-logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .site-logo-name {
+    font-size: 22px;
+  }
+
+  .site-logo-sub {
+    font-size: 10px;
+  }
+
+  .site-menu-toggle {
+    margin-bottom: 10px;
+  }
+
+  .site-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 26px;
+  }
+}
+
+/* 움직임 줄이기 설정을 켠 사용자 */
+@media (prefers-reduced-motion: reduce) {
+  .layout *,
+  .layout *::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}
