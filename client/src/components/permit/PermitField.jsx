@@ -13,6 +13,9 @@
 // - sub: 라벨 옆 흐린 보조 설명 (예: "(이메일)")
 // - required: 라벨 옆에 붉은 ✦ 표시
 // - error: 오류 메시지. 있으면 입력칸이 붉게 바뀌고 아래에 인장과 함께 보여요.
+// - multiline: true 면 여러 줄 입력칸(textarea)으로 바뀌어요. rows 로 높이를 정해요.
+// - hint: 입력칸 아래 흐린 도움말 (예: "영문 소문자·숫자·- 만")
+// - inputMode, min, step, maxLength: 숫자·길이 제한이 필요한 입력칸에 써요.
 
 function PermitField({
   name,
@@ -26,8 +29,17 @@ function PermitField({
   onChange,
   error,
   autoFocus = false,
+  multiline = false,
+  rows = 3,
+  hint,
+  inputMode,
+  min,
+  step,
+  maxLength,
 }) {
   const errorId = `${name}-error`
+  const hintId = `${name}-hint`
+  const describedBy = [error && errorId, hint && hintId].filter(Boolean).join(' ') || undefined
 
   return (
     <div className="permit-field">
@@ -46,18 +58,41 @@ function PermitField({
           </>
         )}
       </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        autoFocus={autoFocus}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        aria-invalid={!!error}
-        aria-describedby={error ? errorId : undefined}
-      />
+      {multiline ? (
+        <textarea
+          id={name}
+          name={name}
+          rows={rows}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          maxLength={maxLength}
+          aria-invalid={!!error}
+          aria-describedby={describedBy}
+        />
+      ) : (
+        <input
+          id={name}
+          name={name}
+          type={type}
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          inputMode={inputMode}
+          min={min}
+          step={step}
+          maxLength={maxLength}
+          aria-invalid={!!error}
+          aria-describedby={describedBy}
+        />
+      )}
+      {hint && (
+        <p id={hintId} className="permit-hint">
+          {hint}
+        </p>
+      )}
       {error && (
         <p id={errorId} className="permit-error">
           {error}

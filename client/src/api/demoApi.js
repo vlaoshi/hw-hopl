@@ -8,6 +8,7 @@
 // - 응답 형식과 검사 규칙은 실제 서버(server/src/controllers, models/User.js)와 같게 맞췄어요.
 
 import { isValidEmail, PASSWORD_MIN_LENGTH } from '../utils/validation.js'
+import { DEMO_PRODUCTS } from './demoProducts.js'
 
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
 
@@ -128,6 +129,15 @@ export async function demoRequest(path, { method = 'GET', body, token } = {}) {
   if (method === 'POST' && path === '/users') return createUser(body)
   if (method === 'POST' && path === '/auth/login') return login(body)
   if (method === 'GET' && path === '/auth/me') return getMe(token)
+
+  // 상품 목록·상세 (DB 대신 demoProducts.js 의 예시 상품)
+  if (method === 'GET' && path === '/products') return { success: true, data: DEMO_PRODUCTS }
+  if (method === 'GET' && path.startsWith('/products/')) {
+    const id = decodeURIComponent(path.slice('/products/'.length))
+    const product = DEMO_PRODUCTS.find((p) => p._id === id)
+    if (!product) fail(404, '상품을 찾을 수 없어요.')
+    return { success: true, data: product }
+  }
 
   return fail(404, '체험 모드에서는 아직 지원하지 않는 기능이에요.')
 }

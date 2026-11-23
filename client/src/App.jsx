@@ -9,6 +9,10 @@ import LoginPage from './pages/LoginPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import ComingSoonPage from './pages/ComingSoonPage.jsx'
 import HarborPage from './pages/HarborPage.jsx'
+import ProductDetailPage from './pages/ProductDetailPage.jsx'
+import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
+import AdminProductsPage from './pages/AdminProductsPage.jsx'
+import AdminProductFormPage from './pages/AdminProductFormPage.jsx'
 
 function App() {
   return (
@@ -17,6 +21,7 @@ function App() {
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="harbor" element={<HarborPage />} />
+        <Route path="products/:id" element={<ProductDetailPage />} />
 
         {/* 헤더 메뉴 - 아직 만들지 않은 페이지는 "정비 중" 안내 */}
         <Route path="shop" element={<ComingSoonPage title="진열장" />} />
@@ -24,7 +29,15 @@ function App() {
         <Route path="cart" element={<ComingSoonPage title="장바구니" />} />
         <Route path="orders" element={<ComingSoonPage title="주문 내역" />} />
         <Route path="mypage" element={<ComingSoonPage title="내 정보" />} />
-        <Route path="admin" element={<ComingSoonPage title="상회 관리" />} />
+
+        {/* 하플 상점주 대시보드 (관리자) */}
+        <Route path="admin" element={<AdminDashboardPage />} />
+        <Route path="admin/products" element={<AdminProductsPage />} />
+        <Route path="admin/products/new" element={<AdminProductFormPage />} />
+        <Route path="admin/products/:id/edit" element={<AdminProductFormPage />} />
+        <Route path="admin/orders" element={<ComingSoonPage title="주문 관리" />} />
+        <Route path="admin/sales" element={<ComingSoonPage title="매출 분석" />} />
+        <Route path="admin/merchants" element={<ComingSoonPage title="교역 상인 관리" />} />
 
         <Route path="*" element={<NotFoundPage />} />
       </Route>

@@ -68,6 +68,39 @@ server/
 - 로그인이 필요한 API에는 `middlewares/auth.js`의 `requireAuth`를, 관리자 전용 API에는 `requireAdmin`을 붙이세요.
 - 토큰 설정은 `.env`의 `JWT_SECRET`(비밀키), `JWT_EXPIRES_IN`(유효 기간, 기본 1d)에서 바꿔요.
 
+### 상품 (Product)
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| GET | `/api/products` | 진열장 상품 목록 (판매 중인 상품만, 진열 순서대로) |
+| GET | `/api/products/:id` | 상품 상세 (없는 상품은 404) |
+
+- 예시 상품 넣기: `npm run seed` (여러 번 실행해도 중복되지 않아요. 내용은 `src/data/sampleProducts.js`에서 고쳐요)
+- 상품 필드
+  - 필수: `sku`(상품 코드), `name`(이름), `price`(가격, 원), `image`(도트 이미지 이름), `description`(자세한 설명), `summary`(진열장 카드용 한두 줄, 120자 이하)
+  - 선택: `photos`(실물 사진 최대 3장), `sortOrder`(진열 순서, 기본 0), `isActive`(진열 여부, 기본 true)
+- **SKU 규칙**: `HAPL-` + 영문 대·소문자·숫자 8자리 (예: `HAPL-a7K2m9Qx`, 대·소문자 구분)
+  - 등록할 때 서버가 자동 발급해요. 요청에 `sku`를 보내도 무시돼요.
+  - DB 유니크 인덱스로 같은 SKU는 절대 두 번 저장되지 않고, 한 번 정해지면 바꿀 수 없어요.
+- `image`는 `client/src/components/goods/goodsSprites.js`의 그림 이름과 짝을 이뤄요. 그림이 없는 새 상품은 `mystery-crate`(물음표 상자)를 써요.
+- 상품 스키마가 바뀌기 전(slug 사용)에 넣은 상품은 `npm run migrate:products`로 한 번 옮겨요. (slug → image, SKU 발급, 여러 번 실행해도 안전)
+
+### 관리자 (하플 상점주 대시보드)
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| GET | `/api/admin/stats` | 대시보드 요약 `{ merchants, products, orders, revenue, recentOrders }` |
+| GET | `/api/admin/products` | 상품 전체 목록 (숨긴 상품 포함) |
+| POST | `/api/admin/products` | 상품 등록 `{ name, image, summary, description, price, sortOrder?, isActive? }` → SKU 자동 발급 |
+| GET | `/api/admin/products/:id` | 상품 하나 |
+| PATCH | `/api/admin/products/:id` | 상품 수정 (보낸 필드만, SKU는 수정 불가). 진열 숨기기: `{ "isActive": false }` |
+| DELETE | `/api/admin/products/:id` | 상품 삭제 (올린 사진 파일도 함께) |
+| POST | `/api/admin/products/:id/photos` | 실물 사진 올리기 (form-data, 필드 이름 `photos`, 합계 최대 3장, jpg·png·webp·gif, 장당 5MB) |
+| DELETE | `/api/admin/products/:id/photos` | 실물 사진 지우기 `{ url }` |
+
+- `/api/admin` 아래는 모두 **로그인 + 관리자(user_type: admin)**만 쓸 수 있어요. (토큰 없음 401, 일반 회원 403)
+- 올린 사진은 `server/uploads/products/`에 저장되고 `/uploads/products/파일이름` 주소로 보여요. (git에는 올라가지 않아요)
+- `npm run seed`는 기본적으로 **없는 상품만** 넣어요. 관리 화면에서 고친 값을 파일 내용으로 되돌리려면 `npm run seed -- --overwrite`
+- `orders`, `revenue`, `recentOrders`는 주문 기능을 만들기 전까지 0 / 빈 목록이에요.
+
 ## 응답 형식
 
 - 성공: `{ "success": true, ... }`

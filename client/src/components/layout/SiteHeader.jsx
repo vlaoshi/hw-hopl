@@ -128,7 +128,8 @@ function SiteHeader() {
                     aria-controls="site-account-menu"
                     onClick={() => setAccountOpen((open) => !open)}
                   >
-                    ⚓ <strong>{user.name}</strong> 상인님 입항 중
+                    {/* 호칭: 관리자는 상점주, 손님은 상인 */}
+                    ⚓ <strong>{user.name}</strong> {isAdmin ? '상점주님' : '상인님'} 입항 중
                     <span className="site-user-caret" aria-hidden="true">
                       ▾
                     </span>

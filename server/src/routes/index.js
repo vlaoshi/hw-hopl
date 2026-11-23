@@ -5,6 +5,8 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import userRoutes from './user.routes.js';
 import authRoutes from './auth.routes.js';
+import productRoutes from './product.routes.js';
+import adminRoutes from './admin.routes.js';
 
 const router = Router();
 
@@ -13,6 +15,12 @@ router.use('/users', userRoutes);
 
 // 인증 (로그인, 내 정보)
 router.use('/auth', authRoutes);
+
+// 상품 (진열장 목록, 상세)
+router.use('/products', productRoutes);
+
+// 관리자 (하플 상점주 대시보드) - 관리자만
+router.use('/admin', adminRoutes);
 
 // 서버와 DB 상태 확인용
 router.get('/health', (req, res) => {

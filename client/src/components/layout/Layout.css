@@ -24,6 +24,11 @@
   color: var(--ink-brown);
 }
 
+/* 검은 게임 화면 페이지(항구·상품 상세·관리자)는 내용이 짧아도 아래쪽 바탕이 양피지색으로 보이지 않게 검게 */
+.main:has(> .harbor-page, > .product-page, > .admin-page, > .title-page) {
+  background: #000000;
+}
+
 .main > * {
   max-width: 1200px;
   margin-left: auto;

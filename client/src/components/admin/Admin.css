@@ -1,0 +1,316 @@
+/* =========================================================
+   하플 상점주(관리자) 화면 공통 스타일 - 대시보드·상품 관리가 함께 써요 (검은 게임 화면 + RPG 창)
+   ========================================================= */
+
+.main > .admin-page {
+  max-width: none;
+  padding: 0;
+  background: #000000;
+}
+
+.admin-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px 22px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  font-family: var(--font-pixel);
+  color: #ffffff;
+}
+
+/* RPG 창 공통 테두리 */
+.admin-stat,
+.admin-panel {
+  background: #000000;
+  box-shadow:
+    0 -3px 0 0 #ffffff,
+    0 3px 0 0 #ffffff,
+    -3px 0 0 0 #ffffff,
+    3px 0 0 0 #ffffff,
+    0 -6px 0 0 #000000,
+    0 6px 0 0 #000000,
+    -6px 0 0 0 #000000,
+    6px 0 0 0 #000000;
+}
+
+/* --- 제목 --- */
+.admin-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-badge,
+.admin-denied-badge {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #000000;
+  background: var(--gold);
+}
+
+.admin-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 900;
+  font-size: clamp(24px, 4vw, 32px);
+  color: #ffd966;
+  text-shadow: 3px 3px 0 #2a1608;
+  word-break: keep-all;
+}
+
+.admin-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #c9d1f0;
+  word-break: keep-all;
+}
+
+.admin-back,
+.admin-denied-link,
+.admin-panel-more {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffd966;
+  text-decoration: none;
+}
+
+.admin-back:hover,
+.admin-back:focus-visible,
+.admin-denied-link:hover,
+.admin-denied-link:focus-visible,
+.admin-panel-more:hover,
+.admin-panel-more:focus-visible {
+  color: #ffffff;
+  outline: 2px dashed #ffffff;
+  outline-offset: 3px;
+}
+
+.admin-error {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #ff9a8a;
+  border: 2px dashed #ff9a8a;
+}
+
+/* --- 숫자 카드 --- */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px;
+  padding: 6px;
+}
+
+.admin-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
+}
+
+.admin-stat-text {
+  min-width: 0;
+}
+
+.admin-stat-label {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #ffd966;
+}
+
+.admin-stat-value {
+  margin: 0;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.2;
+  color: #ffffff;
+  word-break: break-all;
+}
+
+.admin-stat-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #8f99c4;
+}
+
+.admin-stat-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+/* --- 빠른 작업 | 최근 주문 --- */
+.admin-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  padding: 6px;
+  align-items: start;
+}
+
+.admin-panel {
+  padding: 18px 20px 22px;
+}
+
+.admin-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.admin-panel-title {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd966;
+}
+
+.admin-panel-head .admin-panel-title {
+  margin: 0;
+}
+
+.admin-actions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 0 0 2px #6b7394;
+}
+
+.admin-action-mark {
+  width: 14px;
+  color: #ffd966;
+  text-align: center;
+}
+
+.admin-action:hover,
+.admin-action:focus-visible {
+  outline: none;
+  color: #ffd966;
+  box-shadow: 0 0 0 2px #ffd966;
+}
+
+/* 새 상품 등록: 금색 강조 버튼 */
+.admin-action.is-primary {
+  color: #1e1b18;
+  background: var(--gold);
+  box-shadow:
+    inset -3px -3px 0 var(--gold-dark),
+    inset 3px 3px 0 #fff1b8,
+    0 0 0 2px #000000;
+}
+
+.admin-action.is-primary .admin-action-mark {
+  color: #1e1b18;
+}
+
+.admin-action.is-primary:hover,
+.admin-action.is-primary:focus-visible {
+  background: #f2d276;
+}
+
+.admin-empty {
+  margin: 10px 0 0;
+  padding: 28px 12px;
+  font-size: 14px;
+  line-height: 1.8;
+  text-align: center;
+  color: #8f99c4;
+  border: 2px dashed #3a4268;
+  word-break: keep-all;
+}
+
+.admin-orders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-order {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  box-shadow: 0 0 0 2px #3a4268;
+}
+
+.admin-order-id {
+  font-weight: 700;
+}
+
+.admin-order-name {
+  grid-column: 1;
+  color: #c9d1f0;
+}
+
+.admin-order-status {
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: end;
+  padding: 0 8px;
+  color: #000000;
+  background: var(--gold);
+}
+
+.admin-order-total {
+  grid-column: 2;
+  justify-self: end;
+  font-weight: 700;
+}
+
+/* --- 출입 제한 안내 --- */
+.admin-denied {
+  align-items: center;
+  text-align: center;
+  padding-top: 80px;
+  padding-bottom: 100px;
+  gap: 18px;
+}
+
+/* --- 반응형 --- */
+@media (max-width: 1000px) {
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-inner {
+    padding: 24px 16px 40px;
+  }
+
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+}

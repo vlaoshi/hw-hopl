@@ -1,0 +1,352 @@
+/* =========================================================
+   안개섬 무역항 - 입항 후 주 화면 틀
+   명령 창(.harbor-command-*)·대화창(.harbor-dialog*)·현판(.harbor-plaque)은
+   pages/HarborPage.css 의 스타일을 그대로 다시 써요.
+   ========================================================= */
+
+.port-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 22px 40px;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 40px;
+  /* 오른쪽 열이 왼쪽 열(정경+마을) 높이만큼 늘어나서, 대화창 아래 끝이 마을 박스 아래 끝과 맞아요 */
+  align-items: stretch;
+  font-family: var(--font-pixel);
+  color: #ffffff;
+}
+
+.port-side {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.port-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+/* 금색·자주색·남색으로 겹친 액자 (구역 공통) */
+.port-panel {
+  margin: 14px;
+  background: #000000;
+  box-shadow:
+    0 0 0 3px var(--gold),
+    0 0 0 6px var(--purple),
+    0 0 0 9px var(--navy),
+    0 0 0 12px var(--gold),
+    0 0 0 14px #000000;
+}
+
+.port-panel-title {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffd966;
+  background: #000000;
+  border-bottom: 3px solid var(--gold);
+  text-align: center;
+}
+
+/* =========================================================
+   ① 항구 정경 (날씨 창)
+   ========================================================= */
+.port-vista-art {
+  position: relative;
+  line-height: 0;
+}
+
+.port-vista-scene {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.port-vista-scene .vista-ship {
+  animation: vista-bob 2s steps(1) infinite;
+}
+
+@keyframes vista-bob {
+  50% {
+    transform: translateY(1px);
+  }
+}
+
+/* 비·눈 알갱이 겹 */
+.port-vista-weather {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 패턴 한 칸만큼 내려갔다 돌아오기를 반복 → 끊김 없이 계속 내리는 것처럼 보여요 */
+.port-rain {
+  animation: port-rain-fall 0.45s steps(4) infinite;
+}
+
+@keyframes port-rain-fall {
+  to {
+    transform: translateY(20px);
+  }
+}
+
+.port-snow {
+  animation: port-snow-fall 3.2s steps(16) infinite;
+}
+
+@keyframes port-snow-fall {
+  to {
+    transform: translate(25px, 25px);
+  }
+}
+
+/* 날씨 정보 줄 */
+.port-weather-info {
+  margin: 0;
+  padding: 10px 12px 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 3px solid var(--gold);
+  font-size: 13px;
+}
+
+.port-weather-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.port-weather-info dt {
+  font-size: 11px;
+  color: #ffd966;
+}
+
+.port-weather-info dd {
+  margin: 0;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.port-weather-note {
+  margin: 0;
+  padding: 0 12px 8px;
+  font-size: 11px;
+  color: #8f99c4;
+}
+
+/* =========================================================
+   ② 마을 지도
+   ========================================================= */
+.port-town-map {
+  position: relative;
+  line-height: 0;
+}
+
+.port-town-art {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 건물 위에 겹친 누르는 영역 */
+.port-place {
+  position: absolute;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.port-place:focus-visible {
+  outline: 2px dashed #ffffff;
+  outline-offset: 2px;
+}
+
+/* 고른 건물: 금색 테두리가 깜빡여요 */
+.port-place.is-selected {
+  box-shadow: 0 0 0 2px #ffd966;
+  animation: blink 1.2s steps(1) infinite;
+}
+
+.port-place-label {
+  display: inline-block;
+  transform: translateY(55%);
+  padding: 2px 6px;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #c9d1f0;
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 0 2px #6b7394;
+}
+
+.port-place-lock {
+  font-weight: 400;
+  color: #8f99c4;
+}
+
+.port-place.is-available .port-place-label {
+  color: #1e1b18;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px #000000;
+}
+
+.port-place:hover .port-place-label,
+.port-place:focus-visible .port-place-label {
+  color: #ffffff;
+  background: #000000;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* =========================================================
+   ③ 상품 리스트 구역 + ④ 명령 창
+   ========================================================= */
+/* 늘어난 오른쪽 열의 남는 높이를 진열장이 모두 차지해요 */
+.port-center {
+  flex: 1;
+  display: flex;
+  gap: 40px;
+  align-items: stretch;
+}
+
+/* ③ 하플 상회 진열장: 상품 카드가 바로 쌓여요 */
+.port-goods {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 18px;
+  color: var(--ink-brown);
+  background-color: var(--parchment);
+  background-image: repeating-linear-gradient(0deg, rgba(120, 90, 50, 0.05) 0 1px, transparent 1px 3px);
+  /* 상품이 많아지면 진열장 안에서 스크롤돼요 */
+  overflow-y: auto;
+  scrollbar-color: var(--gold-dark) transparent;
+}
+
+/* 넓은 화면: 진열장 높이가 상품 수에 따라 늘어나지 않고 왼쪽 열 높이에 맞춰져요
+   (그래야 대화창 아래 끝이 마을 박스 아래 끝과 계속 맞아요) */
+@media (min-width: 1001px) {
+  .port-goods {
+    contain: size;
+  }
+}
+
+/* 명령 창: 폭을 좁히고(140px) 글씨도 맞춰 줄여서 한 줄에 들어가게 해요
+   (HarborPage.css 의 .harbor-command 보다 나중에 적용되도록 선택자를 한 단계 구체적으로 써요) */
+.port-center .port-orders {
+  flex: 0 0 140px;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.port-orders .harbor-command-list {
+  padding: 12px 4px;
+}
+
+.port-orders .harbor-command-link {
+  padding: 9px 6px 9px 24px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.port-orders .harbor-command-link::before {
+  left: 8px;
+  top: 12px;
+  font-size: 11px;
+}
+
+/* 대화창 아래 끝(초상화 테두리 7px 포함)을 마을 박스 아래 끝(액자 포함)에 맞춰요 */
+.port-main .port-dialog {
+  margin-bottom: 7px;
+}
+
+/* =========================================================
+   반응형
+   ========================================================= */
+
+/* 태블릿 이하: 한 줄로 쌓기 (현판 → 정경 → 진열장·명령 → 대화창 → 마을) */
+@media (max-width: 1000px) {
+  .port-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  /* 두 열 묶음을 풀어서 각 구역의 순서를 따로 정해요 */
+  .port-side,
+  .port-main {
+    display: contents;
+  }
+
+  .port-plaque {
+    order: 1;
+  }
+
+  .port-vista {
+    order: 2;
+  }
+
+  .port-center {
+    order: 3;
+  }
+
+  .port-dialog {
+    order: 4;
+  }
+
+  .port-town {
+    order: 5;
+  }
+
+  .port-vista,
+  .port-town {
+    align-self: center;
+    width: min(100% - 28px, 520px);
+  }
+
+  .port-center .port-orders {
+    flex-basis: 180px;
+  }
+}
+
+/* 휴대폰 */
+@media (max-width: 640px) {
+  .port-inner {
+    padding: 22px 16px 32px;
+  }
+
+  .port-center {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 34px;
+  }
+
+  .port-center .port-orders {
+    flex: none;
+    margin: 0 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .port-rain,
+  .port-snow,
+  .port-vista-scene .vista-ship,
+  .port-place.is-selected {
+    animation: none;
+  }
+}

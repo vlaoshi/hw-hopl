@@ -22,7 +22,10 @@ async function request(path, { method = 'GET', body, signal } = {}) {
   const token = getToken()
   if (token) options.headers.Authorization = `Bearer ${token}`
 
-  if (body !== undefined) {
+  if (body instanceof FormData) {
+    // 파일(사진) 올리기: Content-Type 은 브라우저가 경계값까지 넣어서 정해 줘요.
+    options.body = body
+  } else if (body !== undefined) {
     options.headers['Content-Type'] = 'application/json'
     options.body = JSON.stringify(body)
   }
