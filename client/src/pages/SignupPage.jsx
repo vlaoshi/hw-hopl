@@ -1,7 +1,7 @@
 // 회원가입 페이지 - 안개섬 하플 상회 "교역허가증 신청"
 // 화면 흐름: Step 1 인트로 컷신 → Step 2 교역허가증 신청서(회원가입 폼) → 발급 완료
 //
-// 서버 API: POST /api/users (server/src/controllers/user.controller.js 의 createUser)
+// 서버 API: api/auth.js 의 signup() → 서버 POST /api/users (user.controller.js 의 createUser)
 // 서버가 받는 필드: email(필수), name(필수), password(필수, 8자 이상), address(선택)
 // ※ user_type 은 보내지 않아요. 보내지 않으면 서버가 기본값 'customer'로 저장해요.
 //   (회원가입 화면에서 누구나 관리자(admin)를 고를 수 있으면 안 되기 때문이에요.)
@@ -10,7 +10,9 @@
 //   상인명 = name / 전서구 주소 = email / 교역등록번호 = password
 //   교역등록번호 확인 = passwordConfirm / 교역물 인도지 = address
 import { useEffect, useState } from 'react'
-import { api } from '../api/client.js'
+import { signup } from '../api/auth.js'
+import { isValidEmail, PASSWORD_MIN_LENGTH } from '../utils/validation.js'
+import PermitField from '../components/permit/PermitField.jsx'
 import IntroCutscene from '../components/signup/IntroCutscene.jsx'
 import PermitIssued from '../components/signup/PermitIssued.jsx'
 import '../styles/retro-theme.css'
@@ -24,15 +26,11 @@ const INITIAL_FORM = {
   address: '',
 }
 
-// 서버 스키마(User.js)와 같은 기준으로 먼저 화면에서 검사해요.
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD_MIN_LENGTH = 8
-
+// 서버 스키마(User.js)와 같은 기준(utils/validation.js)으로 먼저 화면에서 검사해요.
 function validate(form) {
   const errors = {}
   if (!form.email.trim()) errors.email = '전서구 주소를 기재해 주십시오.'
-  else if (!EMAIL_PATTERN.test(form.email.trim()))
-    errors.email = '전서구 주소의 형식이 올바르지 않습니다.'
+  else if (!isValidEmail(form.email)) errors.email = '전서구 주소의 형식이 올바르지 않습니다.'
 
   if (!form.name.trim()) errors.name = '상인명을 기재해 주십시오.'
 
@@ -98,8 +96,7 @@ function SignupPage() {
 
     setSubmitting(true)
     try {
-      const res = await api.post('/users', payload)
-      setSignedUpUser(res.data)
+      setSignedUpUser(await signup(payload))
     } catch (err) {
       if (err.status === 409) {
         // 이메일 중복 (서버 응답 409)
@@ -154,118 +151,65 @@ function SignupPage() {
 
           {/* noValidate: 브라우저 기본 검사 대신 위의 validate()로 한국어 메시지를 보여줘요. */}
           <form className="permit-form" onSubmit={handleSubmit} noValidate>
-            <div className="permit-field">
-              <label htmlFor="name">
-                상인명 <span className="mark-required">✦</span>
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                placeholder="허가증에 기재할 상인명을 입력해 주십시오"
-                value={form.name}
-                onChange={handleChange}
-                aria-invalid={!!errors.name}
-                aria-describedby={errors.name ? 'name-error' : undefined}
-              />
-              {errors.name && (
-                <p id="name-error" className="permit-error">
-                  {errors.name}
-                </p>
-              )}
-            </div>
+            <PermitField
+              name="name"
+              label="상인명"
+              required
+              autoComplete="name"
+              placeholder="허가증에 기재할 상인명을 입력해 주십시오"
+              value={form.name}
+              onChange={handleChange}
+              error={errors.name}
+            />
 
-            <div className="permit-field">
-              <label htmlFor="email">
-                전서구 주소 <span className="label-sub">(이메일)</span>{' '}
-                <span className="mark-required">✦</span>
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="소식을 전달받을 전서구 주소를 입력해 주십시오"
-                value={form.email}
-                onChange={handleChange}
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? 'email-error' : undefined}
-              />
-              {errors.email && (
-                <p id="email-error" className="permit-error">
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            <PermitField
+              name="email"
+              label="전서구 주소"
+              sub="(이메일)"
+              required
+              type="email"
+              autoComplete="email"
+              placeholder="소식을 전달받을 전서구 주소를 입력해 주십시오"
+              value={form.email}
+              onChange={handleChange}
+              error={errors.email}
+            />
 
-            <div className="permit-field">
-              <label htmlFor="password">
-                교역등록번호{' '}
-                <span className="label-sub">(비밀번호 · {PASSWORD_MIN_LENGTH}자 이상)</span>{' '}
-                <span className="mark-required">✦</span>
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="상인 길드 비밀 교역등록번호를 설정해 주십시오"
-                value={form.password}
-                onChange={handleChange}
-                aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? 'password-error' : undefined}
-              />
-              {errors.password && (
-                <p id="password-error" className="permit-error">
-                  {errors.password}
-                </p>
-              )}
-            </div>
+            <PermitField
+              name="password"
+              label="교역등록번호"
+              sub={`(비밀번호 · ${PASSWORD_MIN_LENGTH}자 이상)`}
+              required
+              type="password"
+              autoComplete="new-password"
+              placeholder="상인 길드 비밀 교역등록번호를 설정해 주십시오"
+              value={form.password}
+              onChange={handleChange}
+              error={errors.password}
+            />
 
-            <div className="permit-field">
-              <label htmlFor="passwordConfirm">
-                교역등록번호 확인 <span className="mark-required">✦</span>
-              </label>
-              <input
-                id="passwordConfirm"
-                name="passwordConfirm"
-                type="password"
-                autoComplete="new-password"
-                placeholder="교역등록번호를 한 번 더 입력해 주십시오"
-                value={form.passwordConfirm}
-                onChange={handleChange}
-                aria-invalid={!!errors.passwordConfirm}
-                aria-describedby={errors.passwordConfirm ? 'passwordConfirm-error' : undefined}
-              />
-              {errors.passwordConfirm && (
-                <p id="passwordConfirm-error" className="permit-error">
-                  {errors.passwordConfirm}
-                </p>
-              )}
-            </div>
+            <PermitField
+              name="passwordConfirm"
+              label="교역등록번호 확인"
+              required
+              type="password"
+              autoComplete="new-password"
+              placeholder="교역등록번호를 한 번 더 입력해 주십시오"
+              value={form.passwordConfirm}
+              onChange={handleChange}
+              error={errors.passwordConfirm}
+            />
 
-            <div className="permit-field">
-              <label htmlFor="address">
-                교역물 인도지 <span className="label-sub">(주소 · 선택)</span>
-              </label>
-              <input
-                id="address"
-                name="address"
-                type="text"
-                autoComplete="street-address"
-                placeholder="구입한 물품을 인도받을 곳을 기재해 주십시오"
-                value={form.address}
-                onChange={handleChange}
-                aria-invalid={!!errors.address}
-                aria-describedby={errors.address ? 'address-error' : undefined}
-              />
-              {errors.address && (
-                <p id="address-error" className="permit-error">
-                  {errors.address}
-                </p>
-              )}
-            </div>
+            <PermitField
+              name="address"
+              label="교역물 인도지"
+              sub="(주소 · 선택)"
+              autoComplete="street-address"
+              placeholder="구입한 물품을 인도받을 곳을 기재해 주십시오"
+              value={form.address}
+              onChange={handleChange}
+              error={errors.address}
+            />
 
             {serverError && (
               <p className="permit-error permit-error-box" role="alert">

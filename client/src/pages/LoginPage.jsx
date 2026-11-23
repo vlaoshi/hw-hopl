@@ -1,18 +1,20 @@
 // 로그인 페이지 - 안개섬 "신비의 섬 입항 검문소"
 // [1단계] 검문소 레이아웃 + 기본 로그인 폼 + 입력값 검사
 // [2단계] 제휴 상회 통행증(소셜 로그인) 버튼
-// [로그인 연동] 서버 API: POST /api/auth/login (server/src/controllers/auth.controller.js 의 login)
-//   요청 { email, password } → 성공(200) { data: { token, user } } / 실패 400·401
+// [로그인 연동] api/auth.js 의 login() → 서버 POST /api/auth/login
+//   성공 { token, user } / 실패 400·401
 //   성공하면 토큰을 저장(utils/authStorage.js)하고 항구 화면(/harbor)으로 이동해요.
-// [로그인 상태 확인] 저장된 토큰이 있으면 GET /api/auth/me 로 확인해서
+// [로그인 상태 확인] 저장된 토큰이 있으면 api/auth.js 의 verifySession() 으로 확인해서
 //   유효하면 로그인 폼 대신 항구 화면으로 바로 보내요.
 //
 // [화면 용어 ↔ 코드 필드명]
 //   전서구 주소 = email / 교역등록번호 = password
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { api } from '../api/client.js'
-import { clearAuth, getToken, saveAuth } from '../utils/authStorage.js'
+import { login, verifySession } from '../api/auth.js'
+import { getToken, saveAuth } from '../utils/authStorage.js'
+import { isValidEmail } from '../utils/validation.js'
+import PermitField from '../components/permit/PermitField.jsx'
 import GatekeeperPortrait from '../components/login/GatekeeperPortrait.jsx'
 import SocialLoginButtons from '../components/login/SocialLoginButtons.jsx'
 import '../styles/retro-theme.css'
@@ -23,16 +25,13 @@ const INITIAL_FORM = {
   password: '',
 }
 
-// 회원가입과 같은 이메일 형식 기준을 써요.
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
+// 이메일 형식은 회원가입과 같은 기준(utils/validation.js)을 써요.
 // 로그인에서는 비밀번호 길이 같은 가입 규칙은 검사하지 않아요.
 // (틀린 비밀번호인지는 서버가 판단해요.)
 function validate(form) {
   const errors = {}
   if (!form.email.trim()) errors.email = '전서구 주소를 기재해 주십시오.'
-  else if (!EMAIL_PATTERN.test(form.email.trim()))
-    errors.email = '전서구 주소의 형식이 올바르지 않습니다.'
+  else if (!isValidEmail(form.email)) errors.email = '전서구 주소의 형식이 올바르지 않습니다.'
 
   if (!form.password) errors.password = '교역등록번호를 기재해 주십시오.'
 
@@ -68,15 +67,14 @@ function LoginPage() {
     if (!getToken()) return
     const controller = new AbortController()
 
-    api
-      .get('/auth/me', { signal: controller.signal })
-      .then(() => navigate(AFTER_LOGIN_PATH, { replace: true }))
-      .catch((err) => {
-        if (err.name === 'AbortError') return
-        // 만료되었거나 잘못된 토큰이면 지우고 로그인 폼을 보여줘요.
-        // (서버 꺼짐 등 확인할 수 없는 경우에는 토큰을 그대로 두고 폼만 보여줘요.)
-        if (err.status === 401) clearAuth()
-        setCheckingSession(false)
+    // 유효하면 회원 정보, 만료·확인 불가면 null (만료된 토큰은 verifySession 이 지워요)
+    verifySession({ signal: controller.signal })
+      .then((user) => {
+        if (user) navigate(AFTER_LOGIN_PATH, { replace: true })
+        else setCheckingSession(false)
+      })
+      .catch(() => {
+        // 화면을 벗어나 요청이 취소된 경우라 따로 할 일이 없어요.
       })
 
     return () => controller.abort()
@@ -110,11 +108,7 @@ function LoginPage() {
 
     setSubmitting(true)
     try {
-      const res = await api.post('/auth/login', {
-        email: form.email.trim(),
-        password: form.password,
-      })
-      const { token, user } = res.data
+      const { token, user } = await login({ email: form.email.trim(), password: form.password })
       saveAuth({ token, user }) // 토큰 저장 → 이후 API 요청에 자동으로 붙어요.
       setLoggedInUser(user)
       setNpcLine(npcLineWelcome(user.name))
@@ -191,50 +185,31 @@ function LoginPage() {
 
             {/* noValidate: 브라우저 기본 검사 대신 validate()로 한국어 메시지를 보여줘요. */}
             <form className="permit-form" onSubmit={handleSubmit} noValidate>
-              <div className="permit-field">
-                <label htmlFor="email">
-                  전서구 주소 <span className="label-sub">(이메일)</span>
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="등록된 전서구 주소를 입력해 주십시오"
-                  value={form.email}
-                  onChange={handleChange}
-                  aria-invalid={!!errors.email}
-                  aria-describedby={errors.email ? 'email-error' : undefined}
-                />
-                {errors.email && (
-                  <p id="email-error" className="permit-error">
-                    {errors.email}
-                  </p>
-                )}
-              </div>
+              <PermitField
+                name="email"
+                label="전서구 주소"
+                sub="(이메일)"
+                type="email"
+                autoComplete="email"
+                placeholder="등록된 전서구 주소를 입력해 주십시오"
+                value={form.email}
+                onChange={handleChange}
+                error={errors.email}
+              />
 
-              <div className="permit-field">
-                <label htmlFor="password">
-                  교역등록번호 <span className="label-sub">(비밀번호)</span>
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  autoFocus={!!prefilledEmail} // 이메일이 채워져 있으면 바로 비밀번호를 입력하게 해요.
-                  placeholder="비밀 교역등록번호를 입력해 주십시오"
-                  value={form.password}
-                  onChange={handleChange}
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? 'password-error' : undefined}
-                />
-                {errors.password && (
-                  <p id="password-error" className="permit-error">
-                    {errors.password}
-                  </p>
-                )}
-              </div>
+              {/* 회원가입 직후라 이메일이 채워져 있으면 바로 비밀번호를 입력하게 해요. (autoFocus) */}
+              <PermitField
+                name="password"
+                label="교역등록번호"
+                sub="(비밀번호)"
+                type="password"
+                autoComplete="current-password"
+                autoFocus={!!prefilledEmail}
+                placeholder="비밀 교역등록번호를 입력해 주십시오"
+                value={form.password}
+                onChange={handleChange}
+                error={errors.password}
+              />
 
               {notice && (
                 <p className="login-notice" role="status">

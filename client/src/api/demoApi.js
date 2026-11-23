@@ -7,12 +7,12 @@
 // - 가입 정보는 체험하는 사람의 브라우저에만 저장되고, 어떤 서버로도 전송되지 않아요.
 // - 응답 형식과 검사 규칙은 실제 서버(server/src/controllers, models/User.js)와 같게 맞췄어요.
 
+import { isValidEmail, PASSWORD_MIN_LENGTH } from '../utils/validation.js'
+
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
 
 const USERS_KEY = 'hapl.demo.users'
 const SESSIONS_KEY = 'hapl.demo.sessions'
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD_MIN_LENGTH = 8
 const FAKE_DELAY_MS = 350 // 서버와 통신하는 듯한 짧은 지연
 
 // --- 브라우저 저장소 읽기·쓰기 (막힌 환경에서도 화면이 깨지지 않게) ---
@@ -69,7 +69,7 @@ async function createUser(body = {}) {
 
   const details = []
   if (!email) details.push({ field: 'email', message: '이메일은 필수예요.' })
-  else if (!EMAIL_PATTERN.test(email)) details.push({ field: 'email', message: '이메일 형식이 올바르지 않아요.' })
+  else if (!isValidEmail(email)) details.push({ field: 'email', message: '이메일 형식이 올바르지 않아요.' })
   if (!name) details.push({ field: 'name', message: '이름은 필수예요.' })
   if (!password) details.push({ field: 'password', message: '비밀번호는 필수예요.' })
   else if (password.length < PASSWORD_MIN_LENGTH)

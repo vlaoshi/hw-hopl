@@ -32,24 +32,37 @@ client/
 └── src/
     ├── main.jsx            # React 시작점 (BrowserRouter 설정)
     ├── App.jsx             # 주소별 페이지 연결 (Routes)
-    ├── index.css           # 공통 스타일
-    ├── api/client.js       # 백엔드 API 호출 함수 (api.get, api.post ...)
-    ├── components/         # 여러 페이지에서 쓰는 컴포넌트 (Layout 등)
-    ├── pages/              # 페이지 컴포넌트 (HomePage, NotFoundPage ...)
-    ├── hooks/              # 직접 만든 Hook
-    ├── utils/              # 가격 표시 등 보조 함수
+    ├── index.css           # 전체 기본 스타일
+    ├── styles/             # 세계관 공통 디자인 (retro-theme.css: 색상·폰트·양피지·픽셀 창)
+    ├── api/
+    │   ├── client.js       # 서버 요청 공통 함수 (api.get, api.post ... 토큰 자동 첨부)
+    │   ├── auth.js         # 회원·인증 API (signup, login, getMe, verifySession)
+    │   └── demoApi.js      # 체험 모드: 서버 대신 브라우저 안에서 처리
+    ├── components/
+    │   ├── Layout.jsx      # 헤더·본문·푸터 공통 틀
+    │   ├── layout/         # 헤더, 푸터, 픽셀 아이콘
+    │   ├── permit/         # 양피지 폼 부품 (PermitField: 라벨+입력창+오류 인장)
+    │   ├── harbor/         # 픽셀 그림(PixelArt)과 그림 데이터, 상단 비서 초상화
+    │   ├── signup/         # 회원가입 전용 (인트로 컷신, 발급 완료)
+    │   └── login/          # 로그인 전용 (검문관 초상화, 소셜 버튼)
+    ├── pages/              # 주소별 페이지 (HomePage, HarborPage, SignupPage, LoginPage ...)
+    ├── hooks/              # 직접 만든 Hook (useAuthUser: 로그인 상태)
+    ├── utils/              # 보조 함수 (authStorage: 토큰 저장, validation: 입력 검사 규칙)
     └── assets/             # import해서 쓰는 이미지
 ```
 
 ## API 호출 방법
 
-```js
-import { api } from '../api/client.js'
+페이지에서는 서버 주소를 직접 쓰지 않고, 기능별 API 파일의 함수를 불러요.
 
-const data = await api.get('/products')          // GET  /api/products
-await api.post('/orders', { items: [...] })        // POST /api/orders
+```js
+import { login, verifySession } from '../api/auth.js'
+
+const { token, user } = await login({ email, password })   // POST /api/auth/login
+const me = await verifySession({ signal })                  // 토큰이 유효하면 회원 정보, 아니면 null
 ```
 
+새 기능(예: 상품)을 만들 때도 `api/products.js`처럼 파일을 만들고, 그 안에서 `api.get('/products')`처럼 공통 함수를 쓰면 돼요.
 실패하면 서버가 보낸 `message`를 담은 에러가 발생하므로 `try/catch`로 처리하면 돼요.
 
 ## 참고
