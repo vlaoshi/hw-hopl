@@ -1,34 +1,60 @@
-// 상품 관리 (/admin/products) - 상점주 전용
-// 숨긴 상품까지 전부 보여주고, 상품마다 [수정] [숨기기/다시 진열] [삭제]를 할 수 있어요.
+// 상품 관리 (/admin/products?page=1) - 상점주 전용
+// 숨긴 상품까지 5개씩 페이지로 나눠 보여주고, 상품마다 [수정] [숨기기/다시 진열] [삭제]를 할 수 있어요.
+// - 페이지 번호는 주소(?page=2)에 담겨서, 새로고침·뒤로 가기·수정 후 돌아오기에도 유지돼요.
 // - 숨기기: 손님 진열장에서 빠지지만 상품 정보와 사진은 그대로 남아요.
-// - 삭제: 상품과 올려 둔 사진 파일까지 지워져요. (되돌릴 수 없어서 한 번 더 확인해요)
+// - 삭제: 상품 정보가 지워져요. (되돌릴 수 없어서 한 번 더 확인해요)
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAdminProducts } from '../hooks/useAdminProducts.js'
 import { deleteProduct, updateProduct } from '../api/adminProducts.js'
 import AdminGuard from '../components/admin/AdminGuard.jsx'
+import Pagination from '../components/admin/Pagination.jsx'
 import GoodsSprite from '../components/goods/GoodsSprite.jsx'
 import { formatWon } from '../utils/format.js'
 import './AdminProductsPage.css'
 
 const MAX_PHOTOS = 3
+const PAGE_SIZE = 5 // 한 페이지에 보여 줄 상품 수
+
+// 주소의 ?page= 값을 1 이상의 정수로 읽어요. (이상한 값이면 1)
+function readPage(searchParams) {
+  const page = Number.parseInt(searchParams.get('page'), 10)
+  return Number.isInteger(page) && page >= 1 ? page : 1
+}
 
 function AdminProducts() {
-  const { products, loading, error, replaceProduct, removeProduct } = useAdminProducts()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const page = readPage(searchParams)
+  const { products, pagination, loading, error, replaceProduct, reload } = useAdminProducts({ page, limit: PAGE_SIZE })
   const [busyId, setBusyId] = useState(null) // 처리 중인 상품 (버튼 잠금)
   const location = useLocation()
   const navigate = useNavigate()
-  // 새 상품 등록 화면에서 넘어온 경우 안내 (location.state.created = 등록한 상품 이름)
-  const [message, setMessage] = useState(() =>
-    location.state?.created
-      ? { type: 'ok', text: `'${location.state.created}'을(를) 장부에 올렸습니다. 실물 사진은 [수정]에서 올릴 수 있습니다.` }
-      : null,
-  ) // { type: 'ok' | 'error', text }
+  const { total, totalPages } = pagination
+
+  const goToPage = (next, options) => {
+    setSearchParams(next === 1 ? {} : { page: String(next) }, options)
+  }
+
+  // 없는 페이지(예: 마지막 상품을 지워 페이지가 줄었을 때)면 마지막 페이지로 옮겨요.
+  useEffect(() => {
+    if (!loading && !error && totalPages > 0 && page > totalPages) goToPage(totalPages, { replace: true })
+  })
+  // 등록·수정 화면에서 저장하고 넘어온 경우 안내 (location.state.saved = { name, created })
+  const [message, setMessage] = useState(() => {
+    const saved = location.state?.saved
+    if (!saved) return null
+    return {
+      type: 'ok',
+      text: saved.created
+        ? `'${saved.name}'을(를) 장부에 올렸습니다. 실물 사진은 [수정]에서 올릴 수 있습니다.`
+        : `'${saved.name}'의 수정 내용을 저장했습니다.`,
+    }
+  }) // { type: 'ok' | 'error', text }
 
   // 안내를 한 번 보여 준 뒤 기록을 지워요. (새로고침하면 다시 안 보이게)
   useEffect(() => {
-    if (location.state?.created) navigate(location.pathname, { replace: true, state: null })
-  }, [location.state, location.pathname, navigate])
+    if (location.state?.saved) navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null })
+  }, [location.state, location.pathname, location.search, navigate])
 
   const handleToggle = async (product) => {
     setBusyId(product._id)
@@ -49,14 +75,14 @@ function AdminProducts() {
 
   const handleDelete = async (product) => {
     const ok = window.confirm(
-      `'${product.name}'을(를) 삭제할까요?\n올려 둔 실물 사진도 함께 지워지고 되돌릴 수 없습니다.\n(잠시 내리려는 거라면 [숨기기]를 써 주세요.)`,
+      `'${product.name}'을(를) 삭제할까요?\n삭제하면 되돌릴 수 없습니다.\n(잠시 내리려는 거라면 [숨기기]를 써 주세요.)`,
     )
     if (!ok) return
     setBusyId(product._id)
     setMessage(null)
     try {
       await deleteProduct(product._id)
-      removeProduct(product._id)
+      reload() // 다음 페이지 상품이 앞으로 당겨지니 지금 페이지를 다시 받아요.
       setMessage({ type: 'ok', text: `'${product.name}'을(를) 삭제했습니다.` })
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
@@ -94,14 +120,20 @@ function AdminProducts() {
         )}
 
         <section className="admin-panel" aria-label="상품 목록">
-          {loading && <p className="admin-empty">장부를 펼치는 중입니다...</p>}
+          {loading && products.length === 0 && <p className="admin-empty">장부를 펼치는 중입니다...</p>}
           {error && <p className="admin-error">상품을 불러오지 못했습니다. ({error})</p>}
-          {!loading && !error && products.length === 0 && (
+          {!loading && !error && total === 0 && (
             <p className="admin-empty">등록된 상품이 없습니다. [새 상품 등록]으로 첫 물건을 진열해 보세요.</p>
+          )}
+          {total > 0 && (
+            <p className="admin-list-summary">
+              전체 <strong>{total}</strong>개 · {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}번째 ({page}/
+              {totalPages}쪽)
+            </p>
           )}
 
           {products.length > 0 && (
-            <ul className="admin-product-list">
+            <ul className={`admin-product-list${loading ? ' is-loading' : ''}`}>
               {products.map((product) => (
                 <li key={product._id} className={`admin-product${product.isActive ? '' : ' is-hidden'}`}>
                   <span className="admin-product-art">
@@ -122,7 +154,11 @@ function AdminProducts() {
                     </p>
                   </div>
                   <div className="admin-product-buttons">
-                    <Link to={`/admin/products/${product._id}/edit`} className="admin-small-btn">
+                    <Link
+                      to={`/admin/products/${product._id}/edit`}
+                      state={{ returnTo: `/admin/products${location.search}` }}
+                      className="admin-small-btn"
+                    >
                       수정
                     </Link>
                     <button
@@ -146,6 +182,8 @@ function AdminProducts() {
               ))}
             </ul>
           )}
+
+          <Pagination page={page} totalPages={totalPages} onChange={(next) => goToPage(next)} disabled={loading} />
         </section>
       </div>
     </section>

@@ -1,11 +1,13 @@
 // 관리자(상점주) 상품 관리 로직
 // admin.routes.js 에서 requireAuth + requireAdmin 을 거친 요청만 여기로 와요.
 // - 진열 숨기기: isActive 를 false 로 바꾸면 손님 진열장(GET /api/products)에서 빠져요.
-// - 사진은 uploadPhotos / removePhoto 로만 바꿔요. (등록·수정 요청으로는 바꾸지 않아요)
+// - 사진은 addPhotos / removePhoto 로만 바꿔요. (등록·수정 요청으로는 바꾸지 않아요)
+//   사진 파일 자체는 브라우저가 Cloudinary에 올리고, 서버는 주소만 저장해요.
 import mongoose from 'mongoose';
 import Product, { MAX_PHOTOS } from '../models/Product.js';
 import { AppError } from '../utils/AppError.js';
-import { PRODUCT_PHOTO_URL, deleteProductPhotoFile } from '../middlewares/upload.js';
+import { env } from '../config/env.js';
+import { isOurCloudinaryUrl } from '../utils/cloudinary.js';
 
 // 등록·수정할 수 있는 필드
 // (sku 는 서버가 자동 발급하고 바꿀 수 없어서 여기 없어요)
@@ -26,10 +28,27 @@ async function findProductOrThrow(id) {
   return product;
 }
 
-// [목록] GET /api/admin/products - 숨긴 상품까지 전부
+// [목록] GET /api/admin/products?page=1&limit=5 - 숨긴 상품까지, 페이지 단위로
+// - page: 몇 번째 페이지 (1부터, 기본 1) / limit: 한 페이지 개수 (기본 5, 최대 50)
+// - 응답: { data: 상품 목록, pagination: { page, limit, total, totalPages } }
+// - 정렬: 진열 순서 → 등록 순 → _id (같은 값이어도 페이지마다 순서가 흔들리지 않게)
 export async function listProducts(req, res) {
-  const products = await Product.find().sort({ sortOrder: 1, createdAt: 1 });
-  res.json({ success: true, data: products });
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 5));
+
+  const [products, total] = await Promise.all([
+    Product.find()
+      .sort({ sortOrder: 1, createdAt: 1, _id: 1 })
+      .skip((page - 1) * limit)
+      .limit(limit),
+    Product.countDocuments(),
+  ]);
+
+  res.json({
+    success: true,
+    data: products,
+    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  });
 }
 
 // [상세] GET /api/admin/products/:id
@@ -56,39 +75,38 @@ export async function updateProduct(req, res) {
   res.json({ success: true, data: product });
 }
 
-// [삭제] DELETE /api/admin/products/:id - 올려 둔 사진 파일도 함께 지워요.
+// [삭제] DELETE /api/admin/products/:id
 export async function deleteProduct(req, res) {
   const product = await findProductOrThrow(req.params.id);
   await product.deleteOne();
-  product.photos.forEach(deleteProductPhotoFile);
   res.json({ success: true, message: '상품을 삭제했어요.', data: { _id: product._id } });
 }
 
-// [사진 올리기] POST /api/admin/products/:id/photos (form-data, 필드 이름 photos, 최대 3장)
-// 이미 올린 사진과 합쳐서 3장을 넘으면 거부하고, 방금 올린 파일은 지워요.
-export async function uploadPhotos(req, res) {
-  const files = req.files ?? [];
-  const removeUploaded = () => files.forEach((f) => deleteProductPhotoFile(`${PRODUCT_PHOTO_URL}/${f.filename}`));
-
-  try {
-    if (files.length === 0) throw new AppError(400, '올릴 사진을 골라 주세요.');
-    const product = await findProductOrThrow(req.params.id);
-    if (product.photos.length + files.length > MAX_PHOTOS) {
-      throw new AppError(
-        400,
-        `실물 사진은 최대 ${MAX_PHOTOS}장이에요. 지금 ${product.photos.length}장이 있어서 ${MAX_PHOTOS - product.photos.length}장까지 더 올릴 수 있어요.`,
-      );
-    }
-    product.photos.push(...files.map((f) => `${PRODUCT_PHOTO_URL}/${f.filename}`));
-    await product.save();
-    res.status(201).json({ success: true, data: product });
-  } catch (err) {
-    removeUploaded();
-    throw err;
+// [사진 추가] POST /api/admin/products/:id/photos  body: { urls: ['https://res.cloudinary.com/...', ...] }
+// 사진 파일은 브라우저가 Cloudinary 업로드 위젯으로 이미 올렸고, 여기서는 주소만 상품에 붙여요.
+export async function addPhotos(req, res) {
+  if (!env.cloudinaryCloudName) {
+    throw new AppError(503, '서버에 CLOUDINARY_CLOUD_NAME 설정이 없어서 사진을 저장할 수 없어요.');
   }
+  const { urls } = req.body ?? {};
+  if (!Array.isArray(urls) || urls.length === 0) throw new AppError(400, '저장할 사진 주소(urls)를 보내 주세요.');
+  if (!urls.every(isOurCloudinaryUrl)) throw new AppError(400, '우리 Cloudinary 계정에 올라간 사진 주소만 저장할 수 있어요.');
+
+  const product = await findProductOrThrow(req.params.id);
+  const newUrls = [...new Set(urls)].filter((url) => !product.photos.includes(url));
+  if (product.photos.length + newUrls.length > MAX_PHOTOS) {
+    throw new AppError(
+      400,
+      `실물 사진은 최대 ${MAX_PHOTOS}장이에요. 지금 ${product.photos.length}장이 있어서 ${MAX_PHOTOS - product.photos.length}장까지 더 넣을 수 있어요.`,
+    );
+  }
+  product.photos.push(...newUrls);
+  await product.save();
+  res.status(201).json({ success: true, data: product });
 }
 
-// [사진 지우기] DELETE /api/admin/products/:id/photos  body: { url }
+// [사진 빼기] DELETE /api/admin/products/:id/photos  body: { url }
+// 상품에서 사진 주소만 빼요. (Cloudinary에 올라간 원본 파일은 Cloudinary 관리 화면에서 지워요)
 export async function removePhoto(req, res) {
   const { url } = req.body ?? {};
   const product = await findProductOrThrow(req.params.id);
@@ -97,6 +115,5 @@ export async function removePhoto(req, res) {
   }
   product.photos = product.photos.filter((photo) => photo !== url);
   await product.save();
-  deleteProductPhotoFile(url);
   res.json({ success: true, data: product });
 }

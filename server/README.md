@@ -88,16 +88,18 @@ server/
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | GET | `/api/admin/stats` | 대시보드 요약 `{ merchants, products, orders, revenue, recentOrders }` |
-| GET | `/api/admin/products` | 상품 전체 목록 (숨긴 상품 포함) |
+| GET | `/api/admin/products?page=1&limit=5` | 상품 목록 (숨긴 상품 포함, 페이지 단위). 응답에 `pagination: { page, limit, total, totalPages }` |
 | POST | `/api/admin/products` | 상품 등록 `{ name, image, summary, description, price, sortOrder?, isActive? }` → SKU 자동 발급 |
 | GET | `/api/admin/products/:id` | 상품 하나 |
 | PATCH | `/api/admin/products/:id` | 상품 수정 (보낸 필드만, SKU는 수정 불가). 진열 숨기기: `{ "isActive": false }` |
-| DELETE | `/api/admin/products/:id` | 상품 삭제 (올린 사진 파일도 함께) |
-| POST | `/api/admin/products/:id/photos` | 실물 사진 올리기 (form-data, 필드 이름 `photos`, 합계 최대 3장, jpg·png·webp·gif, 장당 5MB) |
-| DELETE | `/api/admin/products/:id/photos` | 실물 사진 지우기 `{ url }` |
+| DELETE | `/api/admin/products/:id` | 상품 삭제 |
+| POST | `/api/admin/products/:id/photos` | 실물 사진 추가 `{ urls: [...] }` (Cloudinary에 올린 사진 주소, 합계 최대 3장) |
+| DELETE | `/api/admin/products/:id/photos` | 실물 사진 빼기 `{ url }` |
 
 - `/api/admin` 아래는 모두 **로그인 + 관리자(user_type: admin)**만 쓸 수 있어요. (토큰 없음 401, 일반 회원 403)
-- 올린 사진은 `server/uploads/products/`에 저장되고 `/uploads/products/파일이름` 주소로 보여요. (git에는 올라가지 않아요)
+- 실물 사진 파일은 브라우저(Cloudinary 업로드 위젯)가 Cloudinary에 바로 올리고, 서버는 사진 주소만 저장해요.
+  - 환경변수 `CLOUDINARY_CLOUD_NAME`과 같은 계정의 `https://res.cloudinary.com/<클라우드이름>/image/upload/...` 주소만 받아요.
+  - 사진을 빼도 Cloudinary의 원본 파일은 남아요. 필요하면 Cloudinary 관리 화면(Media Library)에서 지워요.
 - `npm run seed`는 기본적으로 **없는 상품만** 넣어요. 관리 화면에서 고친 값을 파일 내용으로 되돌리려면 `npm run seed -- --overwrite`
 - `orders`, `revenue`, `recentOrders`는 주문 기능을 만들기 전까지 0 / 빈 목록이에요.
 

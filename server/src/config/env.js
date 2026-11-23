@@ -26,6 +26,8 @@ export const env = {
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean),
+  // Cloudinary 클라우드 이름 (상품 실물 사진 주소가 우리 계정 것인지 확인할 때 써요. 비밀값 아님)
+  cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
 };
 
 export const isProduction = env.nodeEnv === 'production';

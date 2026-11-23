@@ -3,6 +3,7 @@
 // 실물 사진이 없으면 "사진 준비 중" 칸으로 보여요. (사진 올리기는 나중에 '상회 관리'에서)
 import { Link, useParams } from 'react-router-dom'
 import { useProduct } from '../hooks/useProducts.js'
+import { PHOTO_SQUARE, cloudinaryImage } from '../utils/cloudinary.js'
 import GoodsSprite from '../components/goods/GoodsSprite.jsx'
 import GoldPrice from '../components/goods/GoldPrice.jsx'
 import '../components/goods/Goods.css'
@@ -63,7 +64,7 @@ function ProductDetailPage() {
                   return (
                     <li key={i} className="product-photo">
                       {src ? (
-                        <img src={src} alt={`${product.name} 실물 사진 ${i + 1}`} loading="lazy" />
+                        <img src={cloudinaryImage(src, PHOTO_SQUARE(600))} alt={`${product.name} 실물 사진 ${i + 1}`} loading="lazy" />
                       ) : (
                         <span className="product-photo-empty">사진 준비 중</span>
                       )}

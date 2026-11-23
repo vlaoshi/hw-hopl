@@ -1,8 +1,7 @@
 // 상품 등록 (/admin/products/new) · 수정 (/admin/products/:id/edit) - 상점주 전용
-// - 등록: 양식을 저장하면 상품 관리 목록으로 돌아가요. (실물 사진은 목록의 [수정]에서 올려요)
-// - 수정: [양식] + [실물 사진 관리]
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+// - 등록·수정 모두 양식을 저장하면 상품 관리 목록으로 돌아가요.
+// - 수정 화면: [양식] + [실물 사진 관리] (사진은 올리는 즉시 따로 저장돼요)
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useAdminProduct } from '../hooks/useAdminProducts.js'
 import AdminGuard from '../components/admin/AdminGuard.jsx'
 import ProductForm from '../components/admin/ProductForm.jsx'
@@ -13,17 +12,16 @@ function AdminProductForm() {
   const { id } = useParams()
   const isEdit = !!id
   const navigate = useNavigate()
+  const location = useLocation()
+  // 상품 관리의 몇 쪽에서 왔는지 (예: /admin/products?page=2) - 저장·돌아가기 때 그 쪽으로 돌아가요.
+  const from = location.state?.returnTo
+  const returnTo = typeof from === 'string' && from.startsWith('/admin/products') ? from : '/admin/products'
   const { product, setProduct, loading, error, notFound } = useAdminProduct(id)
-  const [notice, setNotice] = useState('')
 
+  // 저장하면 상품 관리 목록으로 돌아가서 안내를 보여 줘요.
   const handleSaved = (saved, created) => {
-    if (created) {
-      // 상품 관리 목록으로 돌아가서 "등록했습니다" 안내를 보여 줘요.
-      navigate('/admin/products', { replace: true, state: { created: saved.name } })
-    } else {
-      setProduct(saved)
-      setNotice('수정 내용을 저장했습니다.')
-    }
+    // 새 상품은 첫 쪽으로, 수정은 보던 쪽으로 돌아가요.
+    navigate(created ? '/admin/products' : returnTo, { replace: true, state: { saved: { name: saved.name, created } } })
   }
 
   return (
@@ -37,16 +35,11 @@ function AdminProductForm() {
               {isEdit ? '물건의 정보와 실물 사진을 고칠 수 있습니다.' : '진열장에 놓을 새 물건을 장부에 적습니다.'}
             </p>
           </div>
-          <Link to="/admin/products" className="admin-back">
+          <Link to={returnTo} className="admin-back">
             ◀ 상품 관리
           </Link>
         </header>
 
-        {notice && (
-          <p className="admin-message is-ok" role="status">
-            {notice}
-          </p>
-        )}
 
         {isEdit && loading && <p className="admin-empty">장부를 펼치는 중입니다...</p>}
         {isEdit && notFound && <p className="admin-error">찾으시는 상품이 장부에 없습니다.</p>}

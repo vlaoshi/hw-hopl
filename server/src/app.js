@@ -7,7 +7,6 @@ import { env, isProduction } from './config/env.js';
 import apiRoutes from './routes/index.js';
 import { notFound } from './middlewares/notFound.js';
 import { errorHandler } from './middlewares/errorHandler.js';
-import { UPLOAD_ROOT } from './middlewares/upload.js';
 
 const app = express();
 
@@ -23,9 +22,6 @@ app.use(morgan(isProduction ? 'combined' : 'dev'));
 // 요청 본문 파싱 (JSON, 폼 데이터)
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
-
-// 올린 사진 파일 (예: /uploads/products/파일이름.jpg)
-app.use('/uploads', express.static(UPLOAD_ROOT, { maxAge: '1d', index: false }));
 
 // API 라우트
 app.use('/api', apiRoutes);

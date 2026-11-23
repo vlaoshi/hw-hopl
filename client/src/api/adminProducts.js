@@ -3,9 +3,11 @@ import { api } from './client.js'
 
 const BASE = '/admin/products'
 
-// 전체 목록 (숨긴 상품 포함)
-export async function listAdminProducts(options) {
-  return (await api.get(BASE, options)).data
+// 목록 (숨긴 상품 포함, 페이지 단위) → { products, pagination: { page, limit, total, totalPages } }
+export async function listAdminProducts({ page = 1, limit = 5 } = {}, options) {
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) })
+  const res = await api.get(`${BASE}?${query}`, options)
+  return { products: res.data, pagination: res.pagination }
 }
 
 // 상품 하나
@@ -28,14 +30,12 @@ export async function deleteProduct(id) {
   return api.delete(`${BASE}/${encodeURIComponent(id)}`)
 }
 
-// 실물 사진 올리기 (File 목록, 합계 최대 3장) → 수정된 상품
-export async function uploadProductPhotos(id, files) {
-  const form = new FormData()
-  for (const file of files) form.append('photos', file)
-  return (await api.post(`${BASE}/${encodeURIComponent(id)}/photos`, form)).data
+// 실물 사진 추가 (Cloudinary에 올린 사진 주소 목록, 합계 최대 3장) → 수정된 상품
+export async function addProductPhotos(id, urls) {
+  return (await api.post(`${BASE}/${encodeURIComponent(id)}/photos`, { urls })).data
 }
 
-// 실물 사진 지우기 → 수정된 상품
+// 실물 사진 빼기 → 수정된 상품
 export async function removeProductPhoto(id, url) {
   return (await api.delete(`${BASE}/${encodeURIComponent(id)}/photos`, { body: { url } })).data
 }
