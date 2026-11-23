@@ -2,8 +2,8 @@
 // 숨긴 상품까지 전부 보여주고, 상품마다 [수정] [숨기기/다시 진열] [삭제]를 할 수 있어요.
 // - 숨기기: 손님 진열장에서 빠지지만 상품 정보와 사진은 그대로 남아요.
 // - 삭제: 상품과 올려 둔 사진 파일까지 지워져요. (되돌릴 수 없어서 한 번 더 확인해요)
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAdminProducts } from '../hooks/useAdminProducts.js'
 import { deleteProduct, updateProduct } from '../api/adminProducts.js'
 import AdminGuard from '../components/admin/AdminGuard.jsx'
@@ -16,7 +16,19 @@ const MAX_PHOTOS = 3
 function AdminProducts() {
   const { products, loading, error, replaceProduct, removeProduct } = useAdminProducts()
   const [busyId, setBusyId] = useState(null) // 처리 중인 상품 (버튼 잠금)
-  const [message, setMessage] = useState(null) // { type: 'ok' | 'error', text }
+  const location = useLocation()
+  const navigate = useNavigate()
+  // 새 상품 등록 화면에서 넘어온 경우 안내 (location.state.created = 등록한 상품 이름)
+  const [message, setMessage] = useState(() =>
+    location.state?.created
+      ? { type: 'ok', text: `'${location.state.created}'을(를) 장부에 올렸습니다. 실물 사진은 [수정]에서 올릴 수 있습니다.` }
+      : null,
+  ) // { type: 'ok' | 'error', text }
+
+  // 안내를 한 번 보여 준 뒤 기록을 지워요. (새로고침하면 다시 안 보이게)
+  useEffect(() => {
+    if (location.state?.created) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
 
   const handleToggle = async (product) => {
     setBusyId(product._id)

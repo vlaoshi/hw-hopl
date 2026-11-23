@@ -1,8 +1,8 @@
 // 상품 등록 (/admin/products/new) · 수정 (/admin/products/:id/edit) - 상점주 전용
-// - 등록: 양식을 저장하면 수정 화면으로 넘어가서 실물 사진을 올릴 수 있어요.
+// - 등록: 양식을 저장하면 상품 관리 목록으로 돌아가요. (실물 사진은 목록의 [수정]에서 올려요)
 // - 수정: [양식] + [실물 사진 관리]
 import { useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAdminProduct } from '../hooks/useAdminProducts.js'
 import AdminGuard from '../components/admin/AdminGuard.jsx'
 import ProductForm from '../components/admin/ProductForm.jsx'
@@ -13,14 +13,13 @@ function AdminProductForm() {
   const { id } = useParams()
   const isEdit = !!id
   const navigate = useNavigate()
-  const location = useLocation()
   const { product, setProduct, loading, error, notFound } = useAdminProduct(id)
-  // 방금 등록하고 넘어온 경우 안내
-  const [notice, setNotice] = useState(location.state?.created ? '상품을 등록했습니다. 이제 실물 사진을 올릴 수 있습니다.' : '')
+  const [notice, setNotice] = useState('')
 
   const handleSaved = (saved, created) => {
     if (created) {
-      navigate(`/admin/products/${saved._id}/edit`, { replace: true, state: { created: true } })
+      // 상품 관리 목록으로 돌아가서 "등록했습니다" 안내를 보여 줘요.
+      navigate('/admin/products', { replace: true, state: { created: saved.name } })
     } else {
       setProduct(saved)
       setNotice('수정 내용을 저장했습니다.')
@@ -87,7 +86,7 @@ function AdminProductFormPage() {
   const { id } = useParams()
   return (
     <AdminGuard>
-      {/* key: 등록(/new) → 수정(/:id/edit)으로 넘어가면 화면을 새로 만들어 "등록했습니다" 안내가 보이게 해요 */}
+      {/* key: 다른 상품으로 바뀌면 화면을 새로 만들어요 */}
       <AdminProductForm key={id ?? 'new'} />
     </AdminGuard>
   )
