@@ -4,6 +4,7 @@
 //   2) slug 필드 → image 필드로 이름 변경
 //   3) SKU가 없는 상품에 겹치지 않는 SKU 발급
 //   4) sku 유니크 인덱스 생성
+//   5) 재고(stock) 값이 없는 상품에 기본 재고 10개 넣기 (재고 기능을 추가하기 전에 넣은 상품)
 // 여러 번 실행해도 안전해요. (이미 옮긴 상품은 건드리지 않아요)
 import { connectDB, disconnectDB } from '../config/db.js';
 import Product from '../models/Product.js';
@@ -40,6 +41,11 @@ async function migrate() {
   // 4) 인덱스 정리
   await Product.syncIndexes(); // 스키마에 적힌 인덱스(sku 유니크)를 DB에 맞춰요.
   console.log('[MIGRATE] 인덱스 정리 완료:', (await collection.indexes()).map((index) => index.name).join(', '));
+
+  // 5) 재고 기본값
+  const DEFAULT_STOCK = 10;
+  const stocked = await collection.updateMany({ stock: { $exists: false } }, { $set: { stock: DEFAULT_STOCK } });
+  console.log(`[MIGRATE] 재고가 없던 상품에 기본 재고 ${DEFAULT_STOCK}개: ${stocked.modifiedCount}개`);
 
   // 확인: 새 스키마 검사를 통과하는지
   const products = await Product.find();

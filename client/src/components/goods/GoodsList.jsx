@@ -1,10 +1,13 @@
 // 진열장 상품 목록
 // 카드 한 장 = [도트 그림 액자] + [이름 · 간단한 설명 · 금화 가격 패]
 // 카드를 누르면 상품 상세 페이지(/products/:id)로 가요.
+// 이름 아래에 판매 상태(구매 가능 + 재고 숫자 / 품절 / 판매 완료)가 보여요. 품절·판매 완료면 카드가 흐려져요.
 import { Link } from 'react-router-dom'
 import { useProducts } from '../../hooks/useProducts.js'
 import GoodsSprite from './GoodsSprite.jsx'
 import GoldPrice from './GoldPrice.jsx'
+import StockBadge from './StockBadge.jsx'
+import { saleStatus } from '../../utils/stock.js'
 import './Goods.css'
 
 function GoodsList() {
@@ -18,12 +21,16 @@ function GoodsList() {
     <ul className="goods-list">
       {products.map((product) => (
         <li key={product._id}>
-          <Link to={`/products/${product._id}`} className="goods-card">
+          <Link
+            to={`/products/${product._id}`}
+            className={`goods-card${saleStatus(product) === 'available' ? '' : ' is-unavailable'}`}
+          >
             <span className="goods-card-art">
               <GoodsSprite image={product.image} name={product.name} className="goods-card-sprite" />
             </span>
             <span className="goods-card-body">
               <span className="goods-card-name">{product.name}</span>
+              <StockBadge product={product} showCount className="goods-card-stock" />
               <span className="goods-card-summary">{product.summary}</span>
               <GoldPrice price={product.price} className="goods-card-price" />
             </span>

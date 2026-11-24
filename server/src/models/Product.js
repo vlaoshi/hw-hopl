@@ -1,10 +1,15 @@
 // 상품(Product) 스키마 - 하플 상회 진열장에 놓이는 물건
-// 필수: sku(자동 발급·유니크·변경 불가), name, price, image(도트 이미지), description
+// 필수: sku(자동 발급·유니크·변경 불가), name, price, image(도트 이미지), description, stock(재고)
 // 선택: summary 는 진열장 카드용 한두 줄 설명(필수), photos 는 실물 사진(선택, 최대 3장)
 import mongoose from 'mongoose';
 import { SKU_PATTERN, generateUniqueSku } from '../utils/sku.js';
 
 export const MAX_PHOTOS = 3; // 상세 페이지 실물 사진 최대 장수
+// 판매 상태 (재고와 판매 종료 여부로 정해져요)
+// - 구매 가능: 재고 1개 이상
+// - 품절     : 재고 0개 + 다시 들여올 예정 (discontinued: false)
+// - 판매 완료: 재고 0개 + 더 들여올 계획 없음 (discontinued: true)
+export const LOW_STOCK_THRESHOLD = 3; // 재고가 이 수 이하(1개 이상)면 상점주 대시보드에 '재고 적음' 알림
 
 const productSchema = new mongoose.Schema(
   {
@@ -30,6 +35,22 @@ const productSchema = new mongoose.Schema(
         validator: Number.isInteger,
         message: '가격은 원 단위 정수로 써 주세요.',
       },
+    },
+    // 재고 수량 - 0이면 품절 또는 판매 완료 (장바구니에 담을 수 없어요)
+    stock: {
+      type: Number,
+      required: [true, '재고 수량은 필수예요.'],
+      default: 0,
+      min: [0, '재고는 0개 이상이어야 해요.'],
+      validate: {
+        validator: Number.isInteger,
+        message: '재고는 정수(개)로 써 주세요.',
+      },
+    },
+    // 판매 종료(재입고 계획 없음) - true 면 재고가 0일 때 '품절' 대신 '판매 완료'로 보여요.
+    discontinued: {
+      type: Boolean,
+      default: false,
     },
     // 도트 이미지 이름 - 진열장·상세 페이지에 보이는 픽셀 그림
     // (client/src/components/goods/goodsSprites.js 의 그림 이름과 짝을 이뤄요. 예: 'ipod-4th')

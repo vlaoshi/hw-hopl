@@ -155,3 +155,16 @@
     height: 52px;
   }
 }
+
+/* 판매 상태 줄 (이름 아래) */
+.goods-card-stock {
+  color: var(--ink-brown);
+}
+
+/* 품절·판매 완료 상품 카드: 흐리게 (눌러서 상세는 볼 수 있어요) */
+.goods-card.is-unavailable .goods-card-art,
+.goods-card.is-unavailable .goods-card-summary,
+.goods-card.is-unavailable .goods-card-price {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}

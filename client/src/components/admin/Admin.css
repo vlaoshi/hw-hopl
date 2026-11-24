@@ -314,3 +314,100 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* --- 재고 알림 --- */
+.admin-stock-panel {
+  margin: 0 6px;
+}
+
+.admin-stock-summary {
+  margin: 0 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  font-size: 14px;
+  color: #e8ecff;
+}
+
+.admin-stock-summary strong {
+  font-size: 20px;
+}
+
+.admin-stock-summary .is-soldout {
+  color: #ff7a6b;
+}
+
+.admin-stock-summary .is-low {
+  color: #f0a43a;
+}
+
+.admin-stock-summary .is-ended {
+  color: #b8bcc8;
+}
+
+.admin-stock-rule {
+  font-size: 12px;
+  color: #8f99c4;
+}
+
+.admin-stock-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-stock-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  box-shadow: inset 0 0 0 2px #3a4268;
+}
+
+.admin-stock-art {
+  width: 44px;
+  height: 44px;
+}
+
+.admin-stock-sprite {
+  width: 36px;
+  height: 36px;
+}
+
+.admin-stock-name {
+  min-width: 0;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-stock-hidden {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #8f99c4;
+}
+
+.admin-stock-count {
+  font-size: 13px;
+  color: #c9d1f0;
+}
+
+@media (max-width: 600px) {
+  .admin-stock-item {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+  }
+
+  .admin-stock-count,
+  .admin-stock-item .admin-small-btn {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
+}

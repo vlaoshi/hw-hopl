@@ -326,11 +326,15 @@
   word-break: keep-all;
 }
 
-/* 가격 · 진열 순서 나란히 */
+/* 가격 · 재고 · 진열 순서 나란히 */
 .admin-form-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
+}
+
+.admin-form-row.is-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .admin-checkbox {
@@ -475,6 +479,7 @@
 
 @media (max-width: 480px) {
   .admin-form-row,
+  .admin-form-row.is-three,
   .admin-photo-grid {
     grid-template-columns: 1fr;
   }

@@ -76,7 +76,9 @@ server/
 
 - 예시 상품 넣기: `npm run seed` (여러 번 실행해도 중복되지 않아요. 내용은 `src/data/sampleProducts.js`에서 고쳐요)
 - 상품 필드
-  - 필수: `sku`(상품 코드), `name`(이름), `price`(가격, 원), `image`(도트 이미지 이름), `description`(자세한 설명), `summary`(진열장 카드용 한두 줄, 120자 이하)
+  - 필수: `sku`(상품 코드), `name`(이름), `price`(가격, 원), `stock`(재고, 0 이상 정수),  `image`(도트 이미지 이름), `description`(자세한 설명), `summary`(진열장 카드용 한두 줄, 120자 이하)
+  - 재고 상태: 0개 = 품절, 1~3개 = 품절 임박 (`LOW_STOCK_THRESHOLD`), 품절 상품도 진열장에는 '품절'로 보여요
+  - 판매 상태: 재고 1개 이상 = 구매 가능 / 재고 0 = 품절 / 재고 0 + `discontinued: true`(재입고 계획 없음) = 판매 완료
   - 선택: `photos`(실물 사진 최대 3장), `sortOrder`(진열 순서, 기본 0), `isActive`(진열 여부, 기본 true)
 - **SKU 규칙**: `HAPL-` + 영문 대·소문자·숫자 8자리 (예: `HAPL-a7K2m9Qx`, 대·소문자 구분)
   - 등록할 때 서버가 자동 발급해요. 요청에 `sku`를 보내도 무시돼요.
@@ -84,14 +86,22 @@ server/
 - `image`는 `client/src/components/goods/goodsSprites.js`의 그림 이름과 짝을 이뤄요. 그림이 없는 새 상품은 `mystery-crate`(물음표 상자)를 써요.
 - 상품 스키마가 바뀌기 전(slug 사용)에 넣은 상품은 `npm run migrate:products`로 한 번 옮겨요. (slug → image, SKU 발급, 여러 번 실행해도 안전)
 
+### 장바구니 (Cart) - 스키마만 있음, API는 다음 단계
+- 파일: `src/models/Cart.js`
+- 구조: `{ user, items: [{ product, quantity, addedAt }], createdAt, updatedAt }`
+- 회원 한 명당 장바구니 하나 (`user` 유니크), 같은 상품은 한 줄로만 담겨요 (다시 담으면 수량 증가)
+- 수량 1~99개 정수, 상품 종류는 30개까지
+- 가격은 저장하지 않고, 보여 줄 때 상품의 지금 가격을 읽어요 (`populate('items.product')`)
+- 도우미: `Cart.findOrCreate(userId)`, `cart.addItem(id, 수량)`, `cart.setItemQuantity(id, 수량)`, `cart.removeItem(id)`, `cart.clear()` (저장은 `cart.save()`)
+
 ### 관리자 (하플 상점주 대시보드)
 | 메서드 | 경로 | 설명 |
 |---|---|---|
-| GET | `/api/admin/stats` | 대시보드 요약 `{ merchants, products, orders, revenue, recentOrders }` |
+| GET | `/api/admin/stats` | 대시보드 요약 `{ merchants, products, stock: { soldOut, lowStock, ended, threshold, alerts }, orders, revenue, recentOrders }` |
 | GET | `/api/admin/products?page=1&limit=5` | 상품 목록 (숨긴 상품 포함, 페이지 단위). 응답에 `pagination: { page, limit, total, totalPages }` |
-| POST | `/api/admin/products` | 상품 등록 `{ name, image, summary, description, price, sortOrder?, isActive? }` → SKU 자동 발급 |
+| POST | `/api/admin/products` | 상품 등록 `{ name, image, summary, description, price, stock, sortOrder?, isActive? }` → SKU 자동 발급 |
 | GET | `/api/admin/products/:id` | 상품 하나 |
-| PATCH | `/api/admin/products/:id` | 상품 수정 (보낸 필드만, SKU는 수정 불가). 진열 숨기기: `{ "isActive": false }` |
+| PATCH | `/api/admin/products/:id` | 상품 수정 (보낸 필드만, SKU는 수정 불가). 진열 숨기기: `{ "isActive": false }`, 재고: `{ "stock": 10 }`, 판매 종료: `{ "discontinued": true }` |
 | DELETE | `/api/admin/products/:id` | 상품 삭제 |
 | POST | `/api/admin/products/:id/photos` | 실물 사진 추가 `{ urls: [...] }` (Cloudinary에 올린 사진 주소, 합계 최대 3장) |
 | DELETE | `/api/admin/products/:id/photos` | 실물 사진 빼기 `{ url }` |

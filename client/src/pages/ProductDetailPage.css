@@ -116,6 +116,25 @@
   padding: 6px 16px 6px 10px;
 }
 
+/* 판매 상태: 상세 페이지에서는 조금 크게 */
+.product-stock {
+  color: #e8ecff;
+}
+
+.product-stock .sale-badge {
+  font-size: 13px;
+  padding: 2px 10px 2px 7px;
+}
+
+.product-stock .sale-badge-icon {
+  width: 11px;
+  height: 11px;
+}
+
+.product-stock .sale-count {
+  font-size: 15px;
+}
+
 .product-price .gold-price-coin {
   width: 30px;
   height: 24px;

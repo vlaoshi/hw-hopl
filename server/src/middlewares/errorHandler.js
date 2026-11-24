@@ -13,7 +13,11 @@ export function errorHandler(err, req, res, next) {
   if (err instanceof mongoose.Error.ValidationError) {
     statusCode = 400;
     message = '입력값이 올바르지 않아요.';
-    details = Object.values(err.errors).map((e) => ({ field: e.path, message: e.message }));
+    details = Object.values(err.errors).map((e) => ({
+      field: e.path,
+      // 형식이 아예 다른 값(예: 숫자 칸에 '많음')은 영어 기본 문구 대신 한국어로 알려줘요.
+      message: e.name === 'CastError' ? `${e.path} 값의 형식이 올바르지 않아요.${e.kind === 'Number' ? ' (숫자로 써 주세요)' : ''}` : e.message,
+    }));
   }
   // 잘못된 ObjectId 형식 (예: /api/products/abc)
   else if (err instanceof mongoose.Error.CastError) {

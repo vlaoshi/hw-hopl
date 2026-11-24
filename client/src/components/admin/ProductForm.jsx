@@ -3,7 +3,7 @@
 // - 저장에 성공하면 onSaved(저장된 상품, 새로 만들었는지) 를 불러요.
 // - 사진은 여기서 다루지 않아요. (수정 화면의 ProductPhotoManager 에서 올려요)
 // - SKU 는 서버가 등록할 때 자동 발급하고 바꿀 수 없어서, 수정 화면에서 읽기 전용으로만 보여 줘요.
-// - 필수: 상품 이름, 도트 이미지, 간단한 설명, 자세한 설명, 가격
+// - 필수: 상품 이름, 도트 이미지, 간단한 설명, 자세한 설명, 가격, 재고
 import { useState } from 'react'
 import { createProduct, updateProduct } from '../../api/adminProducts.js'
 import PermitField from '../permit/PermitField.jsx'
@@ -18,8 +18,10 @@ function toForm(product) {
     summary: product?.summary ?? '',
     description: product?.description ?? '',
     price: product ? String(product.price) : '',
+    stock: product ? String(product.stock ?? 0) : '',
     sortOrder: product ? String(product.sortOrder ?? 0) : '0',
     isActive: product?.isActive ?? true,
+    discontinued: product?.discontinued ?? false,
   }
 }
 
@@ -37,6 +39,9 @@ function validate(form) {
 
   if (form.price.trim() === '') errors.price = '가격을 기재해 주십시오.'
   else if (!/^\d+$/.test(form.price.trim())) errors.price = '가격은 0 이상의 숫자(원)로 써 주십시오.'
+
+  if (form.stock.trim() === '') errors.stock = '재고 수량을 기재해 주십시오.'
+  else if (!/^\d+$/.test(form.stock.trim())) errors.stock = '재고는 0 이상의 숫자(개)로 써 주십시오.'
 
   if (!/^-?\d+$/.test(form.sortOrder.trim())) errors.sortOrder = '진열 순서는 정수로 써 주십시오.'
 
@@ -72,8 +77,10 @@ function ProductForm({ initial, onSaved }) {
       summary: form.summary.trim(),
       description: form.description.trim(),
       price: Number(form.price),
+      stock: Number(form.stock),
       sortOrder: Number(form.sortOrder),
       isActive: form.isActive,
+      discontinued: form.discontinued,
     }
 
     setSubmitting(true)
@@ -142,7 +149,7 @@ function ProductForm({ initial, onSaved }) {
         error={errors.description}
       />
 
-      <div className="admin-form-row">
+      <div className="admin-form-row is-three">
         <PermitField
           name="price"
           label="가격"
@@ -153,6 +160,17 @@ function ProductForm({ initial, onSaved }) {
           value={form.price}
           onChange={handleChange}
           error={errors.price}
+        />
+        <PermitField
+          name="stock"
+          label="재고"
+          sub="(개 · 0이면 품절)"
+          required
+          inputMode="numeric"
+          placeholder="예) 10"
+          value={form.stock}
+          onChange={handleChange}
+          error={errors.stock}
         />
         <PermitField
           name="sortOrder"
@@ -169,6 +187,12 @@ function ProductForm({ initial, onSaved }) {
         <input type="checkbox" name="isActive" checked={form.isActive} onChange={handleChange} />
         <span>진열장에 진열하기</span>
         <span className="admin-checkbox-note">끄면 손님 진열장에서 숨겨져요</span>
+      </label>
+
+      <label className="admin-checkbox">
+        <input type="checkbox" name="discontinued" checked={form.discontinued} onChange={handleChange} />
+        <span>재입고 계획 없음 (판매 종료)</span>
+        <span className="admin-checkbox-note">재고가 0이 되면 '품절' 대신 '판매 완료'로 보여요</span>
       </label>
 
       {serverError && (

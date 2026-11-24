@@ -10,6 +10,7 @@ import { deleteProduct, updateProduct } from '../api/adminProducts.js'
 import AdminGuard from '../components/admin/AdminGuard.jsx'
 import Pagination from '../components/admin/Pagination.jsx'
 import GoodsSprite from '../components/goods/GoodsSprite.jsx'
+import StockBadge from '../components/goods/StockBadge.jsx'
 import { formatWon } from '../utils/format.js'
 import './AdminProductsPage.css'
 
@@ -145,9 +146,11 @@ function AdminProducts() {
                       <span className={`admin-product-state ${product.isActive ? 'is-on' : 'is-off'}`}>
                         {product.isActive ? '진열 중' : '숨김'}
                       </span>
+                      <StockBadge product={product} showLow />
                     </p>
                     <p className="admin-product-meta">
                       <span>{formatWon(product.price)}원</span>
+                      <span>재고 {product.stock}개</span>
                       <span>사진 {product.photos.length}/{MAX_PHOTOS}</span>
                       <span>순서 {product.sortOrder}</span>
                       <span className="admin-product-sku">{product.sku}</span>

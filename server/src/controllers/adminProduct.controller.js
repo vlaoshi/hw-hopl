@@ -11,7 +11,7 @@ import { isOurCloudinaryUrl } from '../utils/cloudinary.js';
 
 // 등록·수정할 수 있는 필드
 // (sku 는 서버가 자동 발급하고 바꿀 수 없어서 여기 없어요)
-const EDITABLE_FIELDS = ['image', 'name', 'summary', 'description', 'price', 'sortOrder', 'isActive'];
+const EDITABLE_FIELDS = ['image', 'name', 'summary', 'description', 'price', 'stock', 'discontinued', 'sortOrder', 'isActive'];
 
 function pickEditable(body = {}) {
   const result = {};

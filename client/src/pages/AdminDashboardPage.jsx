@@ -1,5 +1,5 @@
 // 하플 상점주 대시보드 (/admin) - 관리자(상점주)만 들어올 수 있어요. (AdminGuard)
-// [제목] → [숫자 카드 4개: 총 교역 상인 · 총 상품 · 총 주문 · 총 매출] → [빠른 작업 | 최근 주문]
+// [제목] → [숫자 카드 4개: 총 교역 상인 · 총 상품 · 총 주문 · 총 매출] → [재고 알림] → [빠른 작업 | 최근 주문]
 // ※ 호칭: 상점주 = 관리자, 상단주 = 손님(회원)
 import { Link } from 'react-router-dom'
 import { useAuthUser } from '../hooks/useAuthUser.js'
@@ -8,6 +8,7 @@ import AdminGuard from '../components/admin/AdminGuard.jsx'
 import StatCard from '../components/admin/StatCard.jsx'
 import QuickActions from '../components/admin/QuickActions.jsx'
 import RecentOrders from '../components/admin/RecentOrders.jsx'
+import StockAlerts from '../components/admin/StockAlerts.jsx'
 import { formatWon } from '../utils/format.js'
 
 function AdminDashboard() {
@@ -44,6 +45,9 @@ function AdminDashboard() {
             note="주문 기능 준비 중"
           />
         </div>
+
+        {/* 품절 · 품절 임박 상품 */}
+        <StockAlerts stock={stats?.stock} loading={loading} />
 
         {/* 빠른 작업 | 최근 주문 */}
         <div className="admin-columns">
