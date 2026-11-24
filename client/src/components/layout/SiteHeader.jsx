@@ -1,14 +1,17 @@
 // 하플 상회 공통 헤더 (16비트 도트 게임 스타일)
 // - 왼쪽: 사슬에 매달린 나무 간판 로고 + RPG 명령 창 메뉴(진열장)
 // - 오른쪽: 입항 전 [⚓ 입항] [교역허가증 발급]
-//          입항 후 [⚓ ○○ 상인님 입항 중 ▾] [출항]
+//          입항 후 [🛒 장바구니 N] [⚓ ○○ 상인님 입항 중 ▾] [출항]
 //            └ 이름에 마우스를 올리거나 누르면 드롭다운: 장바구니 / 주문 내역 / 내 정보 (+ 관리자: 상회 관리)
 // - 좁은 화면(휴대폰)에서는 [☰ 항해 메뉴] 버튼으로 메뉴를 펼치고 접어요. (드롭다운 항목은 목록으로 펼쳐 보여줘요)
+//   장바구니 아이콘은 메뉴가 접혀 있어도 보이도록 [☰ 항해 메뉴] 옆에 따로 보여 줘요.
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthUser } from '../../hooks/useAuthUser.js'
+import { useCartCount } from '../../hooks/useCartCount.js'
 import { clearAuth } from '../../utils/authStorage.js'
 import PixelShipIcon from './PixelShipIcon.jsx'
+import HeaderCartLink from './HeaderCartLink.jsx'
 
 // 왼쪽 주 메뉴
 const MAIN_MENU = [{ to: '/shop', label: '진열장', hint: '상품 목록' }]
@@ -25,6 +28,7 @@ const navLinkClass = (base) => ({ isActive }) => `${base}${isActive ? ' is-activ
 
 function SiteHeader() {
   const user = useAuthUser()
+  const cartCount = useCartCount() // 장바구니에 담긴 개수 (로그인 전이면 null)
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false) // 휴대폰 메뉴 펼침
   const [accountOpen, setAccountOpen] = useState(false) // 드롭다운 펼침 (터치·키보드용)
@@ -83,16 +87,30 @@ function SiteHeader() {
           </span>
         </Link>
 
-        {/* 휴대폰 화면용 메뉴 펼치기 버튼 */}
-        <button
-          type="button"
-          className="site-menu-toggle px-window"
-          aria-expanded={menuOpen}
-          aria-controls="site-menu"
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? '✕ 닫기' : '☰ 항해 메뉴'}
-        </button>
+        {/* 휴대폰 화면: [장바구니] [☰ 항해 메뉴] 묶음 (메뉴가 접혀 있어도 장바구니는 보여요) */}
+        <div className="site-mobile-actions">
+          {user && <HeaderCartLink count={cartCount} className="is-mobile" onClick={closeMenus} />}
+          <button
+            type="button"
+            className="site-menu-toggle px-window"
+            aria-expanded={menuOpen}
+            aria-controls="site-menu"
+            aria-label={menuOpen ? '항해 메뉴 닫기' : '항해 메뉴 열기'}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? (
+              '✕ 닫기'
+            ) : (
+              <>
+                ☰
+                <span className="site-menu-toggle-label">
+                  {' '}
+                  <span className="site-menu-toggle-word">항해 </span>메뉴
+                </span>
+              </>
+            )}
+          </button>
+        </div>
 
         <div id="site-menu" className={`site-menu${menuOpen ? ' is-open' : ''}`}>
           {/* RPG 명령 창 메뉴 */}
@@ -113,6 +131,9 @@ function SiteHeader() {
           <div className="site-auth">
             {user ? (
               <>
+                {/* 장바구니 아이콘 + 담긴 개수 (넓은 화면) */}
+                <HeaderCartLink count={cartCount} className="is-desktop" onClick={closeMenus} />
+
                 {/* 상태 창 + 드롭다운 (마우스를 올리거나, 누르거나, Tab으로 이동하면 열려요) */}
                 <div
                   className={`site-account${accountOpen ? ' is-open' : ''}`}

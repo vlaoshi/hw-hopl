@@ -13,6 +13,7 @@ import ProductDetailPage from './pages/ProductDetailPage.jsx'
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
 import AdminProductsPage from './pages/AdminProductsPage.jsx'
 import AdminProductFormPage from './pages/AdminProductFormPage.jsx'
+import CartPage from './pages/CartPage.jsx'
 
 function App() {
   return (
@@ -26,7 +27,7 @@ function App() {
         {/* 헤더 메뉴 - 아직 만들지 않은 페이지는 "정비 중" 안내 */}
         <Route path="shop" element={<ComingSoonPage title="진열장" />} />
         <Route path="picks" element={<ComingSoonPage title="점장 추천상품" />} />
-        <Route path="cart" element={<ComingSoonPage title="장바구니" />} />
+        <Route path="cart" element={<CartPage />} />
         <Route path="orders" element={<ComingSoonPage title="주문 내역" />} />
         <Route path="mypage" element={<ComingSoonPage title="내 정보" />} />
 

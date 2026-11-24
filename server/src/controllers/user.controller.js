@@ -2,6 +2,7 @@
 // Express 5는 async 함수에서 발생한 에러를 자동으로 errorHandler로 넘겨줘요.
 // (검증 실패 400, 잘못된 id 400, 이메일 중복 409 는 errorHandler가 처리해요.)
 import User from '../models/User.js';
+import Cart from '../models/Cart.js';
 import { AppError } from '../utils/AppError.js';
 
 // 클라이언트가 보낼 수 있는 필드만 허용해요.
@@ -76,5 +77,6 @@ export async function updateUser(req, res) {
 export async function deleteUser(req, res) {
   const user = await User.findByIdAndDelete(req.params.id);
   if (!user) throw new AppError(404, '회원을 찾을 수 없어요.');
+  await Cart.deleteOne({ user: user._id }); // 그 회원의 장바구니도 함께 지워요.
   res.json({ success: true, message: '회원이 삭제되었어요.', data: { _id: user._id } });
 }

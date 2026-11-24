@@ -7,6 +7,7 @@ import { PHOTO_SQUARE, cloudinaryImage } from '../utils/cloudinary.js'
 import GoodsSprite from '../components/goods/GoodsSprite.jsx'
 import GoldPrice from '../components/goods/GoldPrice.jsx'
 import StockBadge from '../components/goods/StockBadge.jsx'
+import AddToCart from '../components/cart/AddToCart.jsx'
 import '../components/goods/Goods.css'
 import './ProductDetailPage.css'
 
@@ -42,6 +43,7 @@ function ProductDetailPage() {
                 <p className="product-summary">{product.summary}</p>
                 <GoldPrice price={product.price} className="product-price" />
                 <StockBadge product={product} showCount className="product-stock" />
+                <AddToCart key={product._id} product={product} />
               </div>
             </div>
 

@@ -86,13 +86,23 @@ server/
 - `image`는 `client/src/components/goods/goodsSprites.js`의 그림 이름과 짝을 이뤄요. 그림이 없는 새 상품은 `mystery-crate`(물음표 상자)를 써요.
 - 상품 스키마가 바뀌기 전(slug 사용)에 넣은 상품은 `npm run migrate:products`로 한 번 옮겨요. (slug → image, SKU 발급, 여러 번 실행해도 안전)
 
-### 장바구니 (Cart) - 스키마만 있음, API는 다음 단계
-- 파일: `src/models/Cart.js`
-- 구조: `{ user, items: [{ product, quantity, addedAt }], createdAt, updatedAt }`
-- 회원 한 명당 장바구니 하나 (`user` 유니크), 같은 상품은 한 줄로만 담겨요 (다시 담으면 수량 증가)
-- 수량 1~99개 정수, 상품 종류는 30개까지
-- 가격은 저장하지 않고, 보여 줄 때 상품의 지금 가격을 읽어요 (`populate('items.product')`)
-- 도우미: `Cart.findOrCreate(userId)`, `cart.addItem(id, 수량)`, `cart.setItemQuantity(id, 수량)`, `cart.removeItem(id)`, `cart.clear()` (저장은 `cart.save()`)
+### 장바구니 (Cart)
+모든 경로는 **로그인한 회원**만 쓸 수 있고 자기 장바구니만 다뤄요. (헤더 `Authorization: Bearer <토큰>`)
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| GET | `/api/cart` | 내 장바구니 보기 (없으면 빈 장바구니를 만들어 돌려줘요) |
+| POST | `/api/cart/items` | 담기 `{ productId, quantity? }` (기본 1개, 이미 있으면 수량을 더해요) |
+| PATCH | `/api/cart/items/:productId` | 수량 바꾸기 `{ quantity }` (1 이상) |
+| DELETE | `/api/cart/items/:productId` | 한 상품 빼기 |
+| DELETE | `/api/cart` | 비우기 |
+
+- 응답: `{ items: [{ product, quantity, addedAt, status, maxQuantity, lineTotal }], summary: { itemCount, totalQuantity, totalPrice, orderable } }`
+  - `status`: `ok`(주문 가능) / `soldout`(품절) / `ended`(판매 완료) / `hidden`(숨긴 상품) / `shortage`(재고가 담은 수량보다 적음)
+  - `ok`가 아닌 줄은 합계(`totalPrice`)에서 빠지고 `orderable`이 `false`가 돼요.
+  - 가격은 장바구니에 저장하지 않고 상품의 지금 가격으로 계산해요. 삭제된 상품은 자동으로 정리돼요.
+- 담기·수량 바꾸기를 막는 경우: 없는·숨긴 상품(404), 품절·판매 완료(409), 재고보다 많은 수량(409), 99개 초과(400)
+- 스키마: `src/models/Cart.js` (회원당 하나, 같은 상품은 한 줄, 수량 1~99, 상품 30종류까지)
 
 ### 관리자 (하플 상점주 대시보드)
 | 메서드 | 경로 | 설명 |

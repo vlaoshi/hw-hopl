@@ -52,6 +52,9 @@ function LoginPage() {
   const location = useLocation()
   // 교역허가증 발급(회원가입) 직후에 오면, 가입한 전서구 주소를 미리 채워 줘요.
   const prefilledEmail = typeof location.state?.email === 'string' ? location.state.email : ''
+  // 장바구니 등에서 "입항하고 담기"로 왔다면 로그인 후 그 페이지로 돌아가요. (우리 사이트 안 주소만)
+  const from = location.state?.from
+  const afterLoginPath = typeof from === 'string' && from.startsWith('/') && !from.startsWith('//') ? from : AFTER_LOGIN_PATH
   const [form, setForm] = useState(() => ({ ...INITIAL_FORM, email: prefilledEmail }))
   const [errors, setErrors] = useState({}) // 필드별 오류 메시지
   const [notice, setNotice] = useState('') // 안내 메시지 (소셜 로그인 준비 중 등)
@@ -70,7 +73,7 @@ function LoginPage() {
     // 유효하면 회원 정보, 만료·확인 불가면 null (만료된 토큰은 verifySession 이 지워요)
     verifySession({ signal: controller.signal })
       .then((user) => {
-        if (user) navigate(AFTER_LOGIN_PATH, { replace: true })
+        if (user) navigate(afterLoginPath, { replace: true })
         else setCheckingSession(false)
       })
       .catch(() => {
@@ -78,14 +81,14 @@ function LoginPage() {
       })
 
     return () => controller.abort()
-  }, [navigate])
+  }, [navigate, afterLoginPath])
 
   // 로그인 성공 → 환영 대사를 잠깐 보여준 뒤 항구 화면으로 이동
   useEffect(() => {
     if (!loggedInUser) return
-    const timer = setTimeout(() => navigate(AFTER_LOGIN_PATH, { replace: true }), REDIRECT_DELAY_MS)
+    const timer = setTimeout(() => navigate(afterLoginPath, { replace: true }), REDIRECT_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [loggedInUser, navigate])
+  }, [loggedInUser, navigate, afterLoginPath])
 
   const handleChange = (e) => {
     const { name, value } = e.target

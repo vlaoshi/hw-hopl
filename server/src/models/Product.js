@@ -11,6 +11,13 @@ export const MAX_PHOTOS = 3; // 상세 페이지 실물 사진 최대 장수
 // - 판매 완료: 재고 0개 + 더 들여올 계획 없음 (discontinued: true)
 export const LOW_STOCK_THRESHOLD = 3; // 재고가 이 수 이하(1개 이상)면 상점주 대시보드에 '재고 적음' 알림
 
+// 판매 상태 계산: 'available'(구매 가능) | 'soldout'(품절) | 'ended'(판매 완료)
+// (client/src/utils/stock.js 의 saleStatus 와 같은 기준)
+export function getSaleStatus(product) {
+  if ((product?.stock ?? 0) > 0) return 'available';
+  return product?.discontinued ? 'ended' : 'soldout';
+}
+
 const productSchema = new mongoose.Schema(
   {
     // 상품 고유 코드: HAPL- + 영문 대·소문자·숫자 8자리 (예: HAPL-a7K2m9Qx)

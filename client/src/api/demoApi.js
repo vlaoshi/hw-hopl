@@ -14,6 +14,7 @@ export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true'
 
 const USERS_KEY = 'hapl.demo.users'
 const SESSIONS_KEY = 'hapl.demo.sessions'
+const CARTS_KEY = 'hapl.demo.carts' // { 회원id: [{ product, quantity, addedAt }] }
 const FAKE_DELAY_MS = 350 // 서버와 통신하는 듯한 짧은 지연
 
 // --- 브라우저 저장소 읽기·쓰기 (막힌 환경에서도 화면이 깨지지 않게) ---
@@ -121,6 +122,123 @@ function getMe(token) {
   return { success: true, data: publicUser(user) }
 }
 
+// --- 장바구니 (서버 controllers/cart.controller.js 와 같은 규칙) ---
+const MAX_QUANTITY = 99
+
+function demoUserId(token) {
+  const userId = token ? load(SESSIONS_KEY, {})[token] : undefined
+  if (!userId) fail(401, '로그인이 필요해요.')
+  return userId
+}
+
+function saleStatusOf(product) {
+  if (product.stock > 0) return 'available'
+  return product.discontinued ? 'ended' : 'soldout'
+}
+
+function loadCart(userId) {
+  return load(CARTS_KEY, {})[userId] ?? []
+}
+
+function saveCart(userId, lines) {
+  save(CARTS_KEY, { ...load(CARTS_KEY, {}), [userId]: lines })
+}
+
+function cartResponse(lines) {
+  const items = lines
+    .map((line) => {
+      const product = DEMO_PRODUCTS.find((p) => p._id === line.product)
+      if (!product) return null
+      const sale = saleStatusOf(product)
+      const status =
+        product.isActive === false ? 'hidden' : sale !== 'available' ? sale : line.quantity > product.stock ? 'shortage' : 'ok'
+      return {
+        product,
+        quantity: line.quantity,
+        addedAt: line.addedAt,
+        status,
+        maxQuantity: Math.min(MAX_QUANTITY, Math.max(0, product.stock)),
+        lineTotal: status === 'ok' ? product.price * line.quantity : 0,
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt))
+  const okItems = items.filter((item) => item.status === 'ok')
+  return {
+    success: true,
+    data: {
+      items,
+      summary: {
+        itemCount: items.length,
+        totalQuantity: okItems.reduce((sum, item) => sum + item.quantity, 0),
+        totalPrice: okItems.reduce((sum, item) => sum + item.lineTotal, 0),
+        orderable: items.length > 0 && okItems.length === items.length,
+      },
+    },
+  }
+}
+
+function readQuantity(value, fallback) {
+  const quantity = value === undefined ? fallback : value
+  if (!Number.isInteger(quantity) || quantity < 1) fail(400, '수량은 1 이상의 정수로 보내 주세요.')
+  return quantity
+}
+
+function purchasableProduct(productId) {
+  const product = DEMO_PRODUCTS.find((p) => p._id === productId)
+  if (!product || product.isActive === false) fail(404, '상품을 찾을 수 없어요.')
+  const sale = saleStatusOf(product)
+  if (sale === 'soldout') fail(409, `'${product.name}'은(는) 품절이라 담을 수 없어요.`)
+  if (sale === 'ended') fail(409, `'${product.name}'은(는) 판매가 끝나 담을 수 없어요.`)
+  return product
+}
+
+function checkQuantityLimit(product, quantity) {
+  if (quantity > product.stock) fail(409, `'${product.name}'은(는) 재고가 ${product.stock}개라 ${product.stock}개까지 담을 수 있어요.`)
+  if (quantity > MAX_QUANTITY) fail(400, `한 상품은 ${MAX_QUANTITY}개까지 담을 수 있어요.`)
+}
+
+function handleCart(path, method, body, token) {
+  const userId = demoUserId(token)
+  const lines = loadCart(userId)
+
+  if (path === '/cart' && method === 'GET') return cartResponse(lines)
+  if (path === '/cart' && method === 'DELETE') {
+    saveCart(userId, [])
+    return cartResponse([])
+  }
+  if (path === '/cart/items' && method === 'POST') {
+    const product = purchasableProduct(body?.productId)
+    const quantity = readQuantity(body?.quantity, 1)
+    const line = lines.find((l) => l.product === product._id)
+    checkQuantityLimit(product, (line?.quantity ?? 0) + quantity)
+    const next = line
+      ? lines.map((l) => (l === line ? { ...l, quantity: l.quantity + quantity } : l))
+      : [...lines, { product: product._id, quantity, addedAt: new Date().toISOString() }]
+    saveCart(userId, next)
+    return cartResponse(next)
+  }
+  if (path.startsWith('/cart/items/')) {
+    const productId = decodeURIComponent(path.slice('/cart/items/'.length))
+    const line = lines.find((l) => l.product === productId)
+    if (method === 'PATCH') {
+      const quantity = readQuantity(body?.quantity)
+      if (!line) fail(404, '장바구니에 없는 상품이에요.')
+      checkQuantityLimit(purchasableProduct(productId), quantity)
+      const next = lines.map((l) => (l === line ? { ...l, quantity } : l))
+      saveCart(userId, next)
+      return cartResponse(next)
+    }
+    if (method === 'DELETE') {
+      if (!line) fail(404, '장바구니에 없는 상품이에요.')
+      const next = lines.filter((l) => l !== line)
+      saveCart(userId, next)
+      return cartResponse(next)
+    }
+  }
+  return fail(404, '체험 모드에서는 아직 지원하지 않는 기능이에요.')
+}
+
 // api/client.js 가 체험 모드일 때 fetch 대신 이 함수를 불러요.
 export async function demoRequest(path, { method = 'GET', body, token } = {}) {
   await new Promise((resolve) => setTimeout(resolve, FAKE_DELAY_MS))
@@ -138,6 +256,9 @@ export async function demoRequest(path, { method = 'GET', body, token } = {}) {
     if (!product) fail(404, '상품을 찾을 수 없어요.')
     return { success: true, data: product }
   }
+
+  // 장바구니 (브라우저 저장소에 회원별로 저장)
+  if (path === '/cart' || path.startsWith('/cart/')) return handleCart(path, method, body, token)
 
   return fail(404, '체험 모드에서는 아직 지원하지 않는 기능이에요.')
 }

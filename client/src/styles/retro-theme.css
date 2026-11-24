@@ -132,6 +132,29 @@
     0 0 0 2px #2a0a0a;
 }
 
+/* 금화 버튼 (장바구니 보기처럼 '다음으로 가기') - 인장 버튼과 크기·글꼴은 같고 색만 달라요 */
+.pixel-btn-gold {
+  color: #2a1608;
+  background: var(--gold);
+  box-shadow:
+    inset -3px -3px 0 var(--gold-dark),
+    inset 3px 3px 0 #fff0b3,
+    0 0 0 2px #2a1608,
+    4px 4px 0 2px rgba(42, 22, 8, 0.35);
+}
+
+.pixel-btn-gold:hover,
+.pixel-btn-gold:focus-visible {
+  color: #2a1608;
+  background: #f5d77a;
+}
+
+.pixel-btn-gold:active {
+  box-shadow:
+    inset 3px 3px 0 var(--gold-dark),
+    0 0 0 2px #2a1608;
+}
+
 /* =========================================================
    양피지 서류
    ========================================================= */
