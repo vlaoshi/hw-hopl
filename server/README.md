@@ -104,13 +104,30 @@ server/
 - 담기·수량 바꾸기를 막는 경우: 없는·숨긴 상품(404), 품절·판매 완료(409), 재고보다 많은 수량(409), 99개 초과(400)
 - 스키마: `src/models/Cart.js` (회원당 하나, 같은 상품은 한 줄, 수량 1~99, 상품 30종류까지)
 
-### 주문 (Order) - 스키마만 있음, API는 다음 단계
+### 주문 (Order)
+모든 경로는 **로그인한 회원**만 쓸 수 있고 자기 주문만 다뤄요. 결제는 토스페이먼츠(테스트 모드), 서버에 `TOSS_SECRET_KEY` 가 있어야 승인·취소돼요.
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| POST | `/api/orders` | 장바구니로 주문서 만들기 `{ shipping: { recipient, phone, zipCode, address1, address2?, memo? } }` → 결제 대기 |
+| POST | `/api/orders/confirm` | 결제 승인 `{ paymentKey, orderId(=주문번호), amount }` → 금액 확인 → 재고 차감 → 토스 승인 → 결제 완료, 장바구니에서 주문한 물건 빼기 |
+| POST | `/api/orders/:orderNumber/fail` | 결제창 실패·중단 기록 `{ code?, message? }` → 결제 실패 |
+| GET | `/api/orders?page=1&limit=10` | 내 주문 목록 (결제 대기·결제 실패는 빼요) |
+| GET | `/api/orders/:orderNumber` | 내 주문 상세 |
+| POST | `/api/orders/:orderNumber/cancel` | 주문 취소 `{ reason? }` (결제 완료일 때만) → 토스 결제 취소 → 재고 되돌림 |
+
+- 장바구니에 주문할 수 없는 물건(품절·숨김·재고 부족)이 있으면 주문서를 만들지 않아요(409).
+- 승인 때 재고가 모자라면 토스 승인 전에 멈추고 결제 실패로 정리해요. 토스 승인이 실패하면 줄인 재고를 되돌려요.
+- 같은 결제로 승인을 두 번 보내면(새로고침) 다시 승인하지 않고 그대로 돌려줘요.
+- 규칙 모음: `src/services/orderService.js` (재고 줄이기·되돌리기, 취소), 토스 호출: `src/utils/tossPayments.js`
+
+#### 주문 스키마
 - 파일: `src/models/Order.js` (결제: 토스페이먼츠 테스트 모드 기준)
 - 구조: `{ orderNumber, user, orderName, items[], itemsTotal, shippingFee, totalAmount, shipping, payment, status, statusHistory[], stockDeducted, createdAt, updatedAt }`
   - `orderNumber`: `ORD-YYYYMMDD-영문·숫자 8자리` 자동 발급·유니크·변경 불가 (토스 `orderId`로도 써요)
   - `items[]`: 주문 당시 `{ product, sku, name, image, price, quantity, lineTotal }`를 복사해 저장 (가격이 바뀌거나 상품이 지워져도 주문서는 그대로)
   - 금액: `lineTotal = price × quantity`, `itemsTotal = 줄 합계의 합`, `totalAmount = itemsTotal + shippingFee` 가 맞지 않으면 저장 거부 (배송비는 지금 항상 0원)
-  - `shipping`: `{ recipient, phone(010-1234-5678 모양으로 맞춰 저장), address1, address2?, memo? }` 주문할 때마다 입력
+  - `shipping`: `{ recipient, phone(010-1234-5678 모양으로 맞춰 저장), zipCode(우편번호 5자리), address1(기본 주소), address2?(상세 주소), memo? }` 주문할 때마다 입력 (주소는 카카오 우편번호 검색으로 채워요)
   - `payment`: `{ provider, status(ready·done·failed·canceled), paymentKey, method, approvedAt, receiptUrl, failCode, failMessage, canceledAt, cancelReason }`
 - 주문 상태 (코드 → 화면 이름), 정해진 길로만 바뀌어요 (`ORDER_STATUS_FLOW`, 바뀔 때마다 `statusHistory`에 기록)
 
@@ -138,13 +155,16 @@ server/
 | DELETE | `/api/admin/products/:id` | 상품 삭제 |
 | POST | `/api/admin/products/:id/photos` | 실물 사진 추가 `{ urls: [...] }` (Cloudinary에 올린 사진 주소, 합계 최대 3장) |
 | DELETE | `/api/admin/products/:id/photos` | 실물 사진 빼기 `{ url }` |
+| GET | `/api/admin/orders?status=&page=1&limit=10` | 주문 목록 (기본: 결제된 주문, `status=all`이면 전부, 상태 코드로 거르기) |
+| GET | `/api/admin/orders/:orderNumber` | 주문 상세 (`customer`: 주문한 회원, 탈퇴했으면 null) |
+| PATCH | `/api/admin/orders/:orderNumber/status` | 상태 바꾸기 `{ status, note? }` - `preparing`·`shipping`·`delivered`·`cancelled`(결제 취소 + 재고 되돌림, 배송중부터는 취소 불가) |
 
 - `/api/admin` 아래는 모두 **로그인 + 관리자(user_type: admin)**만 쓸 수 있어요. (토큰 없음 401, 일반 회원 403)
 - 실물 사진 파일은 브라우저(Cloudinary 업로드 위젯)가 Cloudinary에 바로 올리고, 서버는 사진 주소만 저장해요.
   - 환경변수 `CLOUDINARY_CLOUD_NAME`과 같은 계정의 `https://res.cloudinary.com/<클라우드이름>/image/upload/...` 주소만 받아요.
   - 사진을 빼도 Cloudinary의 원본 파일은 남아요. 필요하면 Cloudinary 관리 화면(Media Library)에서 지워요.
 - `npm run seed`는 기본적으로 **없는 상품만** 넣어요. 관리 화면에서 고친 값을 파일 내용으로 되돌리려면 `npm run seed -- --overwrite`
-- `orders`, `revenue`, `recentOrders`는 주문 기능을 만들기 전까지 0 / 빈 목록이에요.
+- 대시보드 `orders`(결제된 주문 수, 취소 제외), `revenue`(그 결제 금액 합), `recentOrders`(최근 5개)는 주문에서 계산해요.
 
 ## 응답 형식
 

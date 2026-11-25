@@ -95,6 +95,14 @@ const shippingSchema = new mongoose.Schema(
       set: formatPhone,
       match: [/^01[016789]-\d{3,4}-\d{4}$/, '연락처는 010-1234-5678 형식으로 써 주세요.'],
     },
+    // 우편번호 (주소 검색으로 채워요, 5자리 국가기초구역번호)
+    zipCode: {
+      type: String,
+      required: [true, '우편번호는 필수예요. 주소 검색으로 채워 주세요.'],
+      trim: true,
+      match: [/^\d{5}$/, '우편번호는 숫자 5자리예요.'],
+    },
+    // 기본 주소 (주소 검색 결과: 도로명 또는 지번 주소)
     address1: {
       type: String,
       required: [true, '주소는 필수예요.'],

@@ -1,5 +1,6 @@
 // 장바구니 (/cart) - 입항(로그인)한 상인만 쓸 수 있어요.
-// [담은 물건 목록: 수량 바꾸기 · 빼기] + [계산서: 총 수량 · 합계 금액 · 주문하기(준비 중) · 비우기]
+// [담은 물건 목록: 수량 바꾸기 · 빼기] + [계산서: 총 수량 · 합계 금액 · 주문하기 · 비우기]
+// - [주문하기]는 모든 물건이 주문 가능할 때만 눌리고, 주문서 작성(/checkout)으로 가요.
 // - 담은 뒤 품절·판매 완료·숨김이 되었거나 재고가 줄어든 물건은 안내와 함께 표시되고 합계에서 빠져요.
 import { Link } from 'react-router-dom'
 import { useAuthUser } from '../hooks/useAuthUser.js'
@@ -76,10 +77,16 @@ function CartContent() {
               </div>
             </dl>
             {hasProblem && <p className="cart-summary-warn">주문할 수 없는 물건은 합계에서 뺐습니다. 빼거나 수량을 맞춰 주십시오.</p>}
-            <button type="button" className="pixel-btn pixel-btn-seal cart-order-btn" disabled>
-              주문하기 (준비 중)
-            </button>
-            <p className="cart-summary-note">주문 기능이 열리면 이곳에서 바로 주문할 수 있습니다.</p>
+            {summary.orderable ? (
+              <Link to="/checkout" className="pixel-btn pixel-btn-seal cart-order-btn">
+                주문하기
+              </Link>
+            ) : (
+              <button type="button" className="pixel-btn pixel-btn-seal cart-order-btn" disabled>
+                주문하기
+              </button>
+            )}
+            <p className="cart-summary-note">배송비는 무료입니다.</p>
             <button type="button" className="cart-clear-btn" onClick={handleClear} disabled={busyId !== null}>
               장바구니 비우기
             </button>

@@ -12,6 +12,7 @@ import {
   addPhotos,
   removePhoto,
 } from '../controllers/adminProduct.controller.js';
+import { listOrders, getOrder, updateOrderStatus } from '../controllers/adminOrder.controller.js';
 
 const router = Router();
 
@@ -32,5 +33,10 @@ router.route('/products/:id')
 router.route('/products/:id/photos')
   .post(addPhotos) //     POST   사진 추가 { urls } (Cloudinary에 올린 사진 주소)
   .delete(removePhoto); // DELETE 사진 빼기 { url }
+
+// 주문 관리
+router.get('/orders', listOrders); //                          GET   /api/admin/orders?status=&page=  주문 목록
+router.get('/orders/:orderNumber', getOrder); //               GET   /api/admin/orders/:orderNumber   주문 상세
+router.patch('/orders/:orderNumber/status', updateOrderStatus); // PATCH /api/admin/orders/:orderNumber/status { status, note }
 
 export default router;

@@ -14,6 +14,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
 import AdminProductsPage from './pages/AdminProductsPage.jsx'
 import AdminProductFormPage from './pages/AdminProductFormPage.jsx'
 import CartPage from './pages/CartPage.jsx'
+import CheckoutPage from './pages/CheckoutPage.jsx'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="shop" element={<ComingSoonPage title="진열장" />} />
         <Route path="picks" element={<ComingSoonPage title="점장 추천상품" />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="checkout" element={<CheckoutPage />} />
         <Route path="orders" element={<ComingSoonPage title="주문 내역" />} />
         <Route path="mypage" element={<ComingSoonPage title="내 정보" />} />
 

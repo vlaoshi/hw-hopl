@@ -479,6 +479,7 @@
 
 .cart-order-btn {
   width: 100%;
+  text-decoration: none;
 }
 
 .cart-clear-btn {

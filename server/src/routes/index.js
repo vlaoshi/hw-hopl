@@ -8,6 +8,7 @@ import authRoutes from './auth.routes.js';
 import productRoutes from './product.routes.js';
 import adminRoutes from './admin.routes.js';
 import cartRoutes from './cart.routes.js';
+import orderRoutes from './order.routes.js';
 
 const router = Router();
 
@@ -22,6 +23,9 @@ router.use('/products', productRoutes);
 
 // 장바구니 (로그인한 회원 자기 것만)
 router.use('/cart', cartRoutes);
+
+// 주문 (로그인한 회원 자기 것만)
+router.use('/orders', orderRoutes);
 
 // 관리자 (하플 상점주 대시보드) - 관리자만
 router.use('/admin', adminRoutes);
