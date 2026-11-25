@@ -104,6 +104,29 @@ server/
 - 담기·수량 바꾸기를 막는 경우: 없는·숨긴 상품(404), 품절·판매 완료(409), 재고보다 많은 수량(409), 99개 초과(400)
 - 스키마: `src/models/Cart.js` (회원당 하나, 같은 상품은 한 줄, 수량 1~99, 상품 30종류까지)
 
+### 주문 (Order) - 스키마만 있음, API는 다음 단계
+- 파일: `src/models/Order.js` (결제: 토스페이먼츠 테스트 모드 기준)
+- 구조: `{ orderNumber, user, orderName, items[], itemsTotal, shippingFee, totalAmount, shipping, payment, status, statusHistory[], stockDeducted, createdAt, updatedAt }`
+  - `orderNumber`: `ORD-YYYYMMDD-영문·숫자 8자리` 자동 발급·유니크·변경 불가 (토스 `orderId`로도 써요)
+  - `items[]`: 주문 당시 `{ product, sku, name, image, price, quantity, lineTotal }`를 복사해 저장 (가격이 바뀌거나 상품이 지워져도 주문서는 그대로)
+  - 금액: `lineTotal = price × quantity`, `itemsTotal = 줄 합계의 합`, `totalAmount = itemsTotal + shippingFee` 가 맞지 않으면 저장 거부 (배송비는 지금 항상 0원)
+  - `shipping`: `{ recipient, phone(010-1234-5678 모양으로 맞춰 저장), address1, address2?, memo? }` 주문할 때마다 입력
+  - `payment`: `{ provider, status(ready·done·failed·canceled), paymentKey, method, approvedAt, receiptUrl, failCode, failMessage, canceledAt, cancelReason }`
+- 주문 상태 (코드 → 화면 이름), 정해진 길로만 바뀌어요 (`ORDER_STATUS_FLOW`, 바뀔 때마다 `statusHistory`에 기록)
+
+| 코드 | 화면 이름 | 다음 상태 |
+|---|---|---|
+| `awaiting_payment` | 결제 대기 | `paid`, `payment_failed` |
+| `paid` | 결제 완료 | `preparing`, `cancelled` |
+| `preparing` | 상품 준비중 | `shipping`, `cancelled` |
+| `shipping` | 배송중 | `delivered` |
+| `delivered` | 배송완료 | (끝) |
+| `cancelled` | 주문 취소 | (끝) |
+| `payment_failed` | 결제 실패 | (끝) |
+
+- 재고는 결제 승인 단계에서 줄이고(`stockDeducted: true`), 취소하면 한 번만 되돌려요.
+- 주문은 거래 기록이라 회원이 탈퇴해도 지우지 않아요.
+
 ### 관리자 (하플 상점주 대시보드)
 | 메서드 | 경로 | 설명 |
 |---|---|---|

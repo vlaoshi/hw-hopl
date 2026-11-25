@@ -9,12 +9,17 @@ export const SKU_PATTERN = /^HAPL-[A-Za-z0-9]{8}$/;
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 const MAX_TRIES = 10;
 
-// 무작위 SKU 하나 (겹치는지는 확인하지 않아요)
-export function randomSku() {
+// 영문 대·소문자·숫자를 섞은 무작위 문자열 (주문번호 등에서도 함께 써요)
+export function randomCode(length = 8) {
   let code = '';
   // crypto.randomInt: 고르게 섞인 무작위 숫자 (Math.random 보다 예측하기 어려워요)
-  for (let i = 0; i < 8; i++) code += ALPHABET[crypto.randomInt(ALPHABET.length)];
-  return SKU_PREFIX + code;
+  for (let i = 0; i < length; i++) code += ALPHABET[crypto.randomInt(ALPHABET.length)];
+  return code;
+}
+
+// 무작위 SKU 하나 (겹치는지는 확인하지 않아요)
+export function randomSku() {
+  return SKU_PREFIX + randomCode(8);
 }
 
 // DB에 없는 SKU를 만들 때까지 다시 뽑아요. exists(sku) 는 이미 있으면 true 를 돌려주는 함수예요.
