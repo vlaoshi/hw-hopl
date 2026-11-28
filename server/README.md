@@ -105,30 +105,31 @@ server/
 - 스키마: `src/models/Cart.js` (회원당 하나, 같은 상품은 한 줄, 수량 1~99, 상품 30종류까지)
 
 ### 주문 (Order)
-모든 경로는 **로그인한 회원**만 쓸 수 있고 자기 주문만 다뤄요. 결제는 토스페이먼츠(테스트 모드), 서버에 `TOSS_SECRET_KEY` 가 있어야 승인·취소돼요.
+모든 경로는 **로그인한 회원**만 쓸 수 있고 자기 주문만 다뤄요. 결제는 **포트원 V2 · KG이니시스**(테스트 채널), 서버에 `PORTONE_API_SECRET` 이 있어야 결제 확인·취소돼요.
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | POST | `/api/orders` | 장바구니로 주문서 만들기 `{ shipping: { recipient, phone, zipCode, address1, address2?, memo? } }` → 결제 대기 |
-| POST | `/api/orders/confirm` | 결제 승인 `{ paymentKey, orderId(=주문번호), amount }` → 금액 확인 → 재고 차감 → 토스 승인 → 결제 완료, 장바구니에서 주문한 물건 빼기 |
+| POST | `/api/orders/complete` | 결제 완료 확인 `{ paymentId(=주문번호) }` → 포트원 결제 조회(상태 PAID·금액 확인) → 재고 차감 → 결제 완료, 장바구니에서 주문한 물건 빼기. 금액이 다르거나 재고가 모자라면 결제를 자동 취소(환불) |
 | POST | `/api/orders/:orderNumber/fail` | 결제창 실패·중단 기록 `{ code?, message? }` → 결제 실패 |
-| GET | `/api/orders?page=1&limit=10` | 내 주문 목록 (결제 대기·결제 실패는 빼요) |
+| GET | `/api/orders?status=&page=1&limit=10` | 내 주문 목록 (결제 대기·결제 실패는 빼요). `status`로 거르기, 응답 `counts`에 상태별 건수 |
 | GET | `/api/orders/:orderNumber` | 내 주문 상세 |
-| POST | `/api/orders/:orderNumber/cancel` | 주문 취소 `{ reason? }` (결제 완료일 때만) → 토스 결제 취소 → 재고 되돌림 |
+| POST | `/api/orders/:orderNumber/cancel` | 주문 취소 `{ reason? }` (결제 완료일 때만) → 포트원 결제 취소 → 재고 되돌림 |
 
 - 장바구니에 주문할 수 없는 물건(품절·숨김·재고 부족)이 있으면 주문서를 만들지 않아요(409).
-- 승인 때 재고가 모자라면 토스 승인 전에 멈추고 결제 실패로 정리해요. 토스 승인이 실패하면 줄인 재고를 되돌려요.
-- 같은 결제로 승인을 두 번 보내면(새로고침) 다시 승인하지 않고 그대로 돌려줘요.
-- 규칙 모음: `src/services/orderService.js` (재고 줄이기·되돌리기, 취소), 토스 호출: `src/utils/tossPayments.js`
+- 화면이 받은 결제 결과는 믿지 않고, 서버가 포트원에 직접 조회해서 확인해요. (`Authorization: PortOne <API Secret>`)
+- 같은 주문을 두 번 확인해도(새로고침, 모바일 돌아오기) 한 번만 처리해요. (결제 상태 `processing`으로 먼저 잡아 둠)
+- 규칙 모음: `src/services/orderService.js` (재고 줄이기·되돌리기, 취소), 포트원 호출: `src/utils/portone.js`
 
 #### 주문 스키마
-- 파일: `src/models/Order.js` (결제: 토스페이먼츠 테스트 모드 기준)
+- 파일: `src/models/Order.js` (결제: 포트원 V2 · KG이니시스, 포트원 결제 ID = 주문번호)
 - 구조: `{ orderNumber, user, orderName, items[], itemsTotal, shippingFee, totalAmount, shipping, payment, status, statusHistory[], stockDeducted, createdAt, updatedAt }`
-  - `orderNumber`: `ORD-YYYYMMDD-영문·숫자 8자리` 자동 발급·유니크·변경 불가 (토스 `orderId`로도 써요)
+  - `orderNumber`: `ORD-YYYYMMDD-영문·숫자 8자리` 자동 발급·유니크·변경 불가 (포트원 `paymentId`로도 써요)
   - `items[]`: 주문 당시 `{ product, sku, name, image, price, quantity, lineTotal }`를 복사해 저장 (가격이 바뀌거나 상품이 지워져도 주문서는 그대로)
   - 금액: `lineTotal = price × quantity`, `itemsTotal = 줄 합계의 합`, `totalAmount = itemsTotal + shippingFee` 가 맞지 않으면 저장 거부 (배송비는 지금 항상 0원)
   - `shipping`: `{ recipient, phone(010-1234-5678 모양으로 맞춰 저장), zipCode(우편번호 5자리), address1(기본 주소), address2?(상세 주소), memo? }` 주문할 때마다 입력 (주소는 카카오 우편번호 검색으로 채워요)
-  - `payment`: `{ provider, status(ready·done·failed·canceled), paymentKey, method, approvedAt, receiptUrl, failCode, failMessage, canceledAt, cancelReason }`
+  - `delivery`: `{ carrier(택배사), trackingNumber(송장번호), shippedAt, deliveredAt }` 상점주가 배송 시작할 때 넣어요
+  - `payment`: `{ provider('portone'), status(ready·processing·done·failed·canceled), transactionId, pgTxId, method, approvedAt, receiptUrl, failCode, failMessage, canceledAt, cancelReason }`
 - 주문 상태 (코드 → 화면 이름), 정해진 길로만 바뀌어요 (`ORDER_STATUS_FLOW`, 바뀔 때마다 `statusHistory`에 기록)
 
 | 코드 | 화면 이름 | 다음 상태 |
@@ -155,9 +156,9 @@ server/
 | DELETE | `/api/admin/products/:id` | 상품 삭제 |
 | POST | `/api/admin/products/:id/photos` | 실물 사진 추가 `{ urls: [...] }` (Cloudinary에 올린 사진 주소, 합계 최대 3장) |
 | DELETE | `/api/admin/products/:id/photos` | 실물 사진 빼기 `{ url }` |
-| GET | `/api/admin/orders?status=&page=1&limit=10` | 주문 목록 (기본: 결제된 주문, `status=all`이면 전부, 상태 코드로 거르기) |
+| GET | `/api/admin/orders?status=active&q=&period=all&page=1&limit=10` | 주문 목록. `status`: `active`(처리 중, 기본)·`paid_all`·`unpaid`·`all`·상태 코드 / `q`: 주문번호·주문자·받는 분·연락처 검색 / `period`: `today`·`7d`·`30d`·`all`. 응답에 `counts`(상태별 건수), `summary`(오늘 주문·매출, 새 주문 수), `carriers`(택배사 목록) |
 | GET | `/api/admin/orders/:orderNumber` | 주문 상세 (`customer`: 주문한 회원, 탈퇴했으면 null) |
-| PATCH | `/api/admin/orders/:orderNumber/status` | 상태 바꾸기 `{ status, note? }` - `preparing`·`shipping`·`delivered`·`cancelled`(결제 취소 + 재고 되돌림, 배송중부터는 취소 불가) |
+| PATCH | `/api/admin/orders/:orderNumber/status` | 상태 바꾸기 `{ status, note?, carrier?, trackingNumber? }` - `preparing`·`shipping`(택배사 필수, 송장번호 필수 - '직접 배송'은 생략)·`delivered`·`cancelled`(결제 취소 + 재고 되돌림, 배송중부터는 취소 불가) |
 
 - `/api/admin` 아래는 모두 **로그인 + 관리자(user_type: admin)**만 쓸 수 있어요. (토큰 없음 401, 일반 회원 403)
 - 실물 사진 파일은 브라우저(Cloudinary 업로드 위젯)가 Cloudinary에 바로 올리고, 서버는 사진 주소만 저장해요.

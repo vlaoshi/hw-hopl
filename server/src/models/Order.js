@@ -1,10 +1,10 @@
-// 주문(Order) 스키마 - 장바구니로 주문하고 토스페이먼츠(테스트 모드)로 결제하는 주문서
+// 주문(Order) 스키마 - 장바구니로 주문하고 포트원 V2(KG이니시스)로 결제하는 주문서
 //
 // 설계 원칙
 // - 주문 당시의 상품 이름·가격·이미지를 주문서에 복사해 둬요(스냅샷).
 //   상점주가 나중에 가격을 바꾸거나 상품을 지워도 주문서는 그대로 남아요.
 // - 금액은 서버가 계산하고, 저장 전에 한 번 더 맞는지 확인해요. (lineTotal·itemsTotal·totalAmount)
-//   결제 승인 때는 토스가 돌려준 금액이 totalAmount 와 같은지도 확인해요. (금액 조작 방지)
+//   결제 확인 때는 포트원에서 조회한 결제 금액이 totalAmount 와 같은지도 확인해요. (금액 조작 방지)
 // - 주문 상태는 정해진 순서로만 바뀌어요. (ORDER_STATUS_FLOW) 바뀔 때마다 statusHistory 에 기록이 남아요.
 // - 주문은 거래 기록이라 회원이 탈퇴해도 지우지 않아요.
 //
@@ -17,6 +17,8 @@ import { randomCode } from '../utils/sku.js';
 export const MAX_ORDER_ITEMS = 30; // 한 주문에 담을 수 있는 상품 종류 (장바구니와 같아요)
 export const MAX_ORDER_QUANTITY = 99; // 한 상품 최대 수량 (장바구니와 같아요)
 export const ORDER_NUMBER_PATTERN = /^ORD-\d{8}-[A-Za-z0-9]{8}$/;
+// KG이니시스 카드 결제 최소 금액 (결제창에서 '1000원 미만 결제를 할 수 없습니다'로 막혀요)
+export const MIN_PAYMENT_AMOUNT = 1000;
 
 // 주문 상태 (코드 → 화면 이름)
 export const ORDER_STATUS_LABEL = {
@@ -44,7 +46,11 @@ export const ORDER_STATUS_FLOW = {
 // 손님 주문 내역에 보여 주는 상태 (결제가 안 된 주문은 빼요)
 export const CUSTOMER_VISIBLE_STATUSES = ['paid', 'preparing', 'shipping', 'delivered', 'cancelled'];
 
-export const PAYMENT_STATUSES = ['ready', 'done', 'failed', 'canceled']; // 결제 전 · 승인 · 실패 · 결제 취소
+// 결제 전 · 확인 중(서버가 포트원 결제를 확인하는 동안, 두 번 처리 방지) · 결제 완료 · 실패 · 결제 취소
+// 택배사 목록 (배송 시작할 때 고르는 값)
+export const DELIVERY_CARRIERS = ['CJ대한통운', '우체국택배', '한진택배', '롯데택배', '로젠택배', '경동택배', '직접 배송'];
+
+export const PAYMENT_STATUSES = ['ready', 'processing', 'done', 'failed', 'canceled'];
 
 // 0 이상 정수 칸 (subject 는 조사까지 붙여서: '수량은', '배송비는')
 const integerMin = (min, subject) => ({
@@ -115,23 +121,39 @@ const shippingSchema = new mongoose.Schema(
   { _id: false },
 );
 
-// 결제 정보 (토스페이먼츠)
+// 결제 정보 (포트원 V2 - 포트원 결제 ID(paymentId)는 주문번호와 같아요)
 const paymentSchema = new mongoose.Schema(
   {
-    provider: { type: String, default: 'tosspayments' },
+    provider: { type: String, default: 'portone' },
     status: {
       type: String,
       enum: { values: PAYMENT_STATUSES, message: '결제 상태가 올바르지 않아요.' },
       default: 'ready',
     },
-    paymentKey: { type: String }, // 승인 후 토스가 주는 결제 키 (비어 있으면 저장하지 않아요)
-    method: { type: String }, // 카드, 간편결제 등 (토스 응답 값)
-    approvedAt: { type: Date },
+    transactionId: { type: String }, // 포트원 결제 시도 ID (결제 완료 후, 비어 있으면 저장하지 않아요)
+    pgTxId: { type: String }, // KG이니시스 거래 번호
+    method: { type: String }, // 결제 수단 (예: '카드 · 신한카드')
+    approvedAt: { type: Date }, // 결제 완료 시각 (포트원 paidAt)
     receiptUrl: { type: String },
     failCode: { type: String },
     failMessage: { type: String },
     canceledAt: { type: Date },
     cancelReason: { type: String },
+  },
+  { _id: false },
+);
+
+// 배송 정보 (상점주가 '배송 시작'할 때 택배사·송장번호를 넣어요)
+const deliverySchema = new mongoose.Schema(
+  {
+    carrier: { type: String, enum: { values: DELIVERY_CARRIERS, message: '택배사를 목록에서 골라 주세요.' } },
+    trackingNumber: {
+      type: String,
+      trim: true,
+      match: [/^[0-9-]{6,30}$/, '송장번호는 숫자와 - 만 6~30자로 써 주세요.'],
+    },
+    shippedAt: { type: Date }, // 배송 시작 시각
+    deliveredAt: { type: Date }, // 배송완료 시각
   },
   { _id: false },
 );
@@ -150,7 +172,7 @@ const statusHistorySchema = new mongoose.Schema(
 const orderSchema = new mongoose.Schema(
   {
     // 주문번호: ORD-YYYYMMDD-영문·숫자 8자리 (예: ORD-20261125-a7K2m9Qx)
-    // 저장할 때 자동으로 만들고 바꿀 수 없어요. 토스페이먼츠 orderId 로도 그대로 써요.
+    // 저장할 때 자동으로 만들고 바꿀 수 없어요. 포트원 결제 ID(paymentId)로도 그대로 써요. (영문·숫자·- 만이라 KG이니시스 규칙에 맞아요)
     orderNumber: {
       type: String,
       required: [true, '주문번호는 필수예요.'],
@@ -196,6 +218,7 @@ const orderSchema = new mongoose.Schema(
       default: 'awaiting_payment',
     },
     statusHistory: { type: [statusHistorySchema], default: [] },
+    delivery: { type: deliverySchema, default: () => ({}) },
     // 재고를 이미 줄였는지 - 취소할 때 재고를 한 번만 되돌리기 위해 기억해요.
     stockDeducted: { type: Boolean, default: false },
   },
@@ -210,10 +233,10 @@ const orderSchema = new mongoose.Schema(
   },
 );
 
-// 인덱스: 내 주문 내역(최근 순), 상점주 주문 관리(상태별 최근 순), 결제 키 중복 방지
+// 인덱스: 내 주문 내역(최근 순), 상점주 주문 관리(상태별 최근 순), 결제 시도 ID 중복 방지
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
-orderSchema.index({ 'payment.paymentKey': 1 }, { unique: true, sparse: true });
+orderSchema.index({ 'payment.transactionId': 1 }, { unique: true, sparse: true });
 
 // 오늘 날짜(한국 시간) YYYYMMDD
 function todayKST() {

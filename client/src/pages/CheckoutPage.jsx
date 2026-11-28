@@ -3,10 +3,15 @@
 // - 장바구니의 모든 물건이 주문 가능할 때만 주문서를 쓸 수 있어요. (아니면 장바구니로 돌려보내요)
 // - 받는 분 성함은 회원 정보로 미리 채워요. 주소는 카카오 주소 검색으로 우편번호와 함께 채워요.
 //   (회원 정보의 주소는 우편번호가 없어서, 주소 검색창을 열 때 검색어로 미리 넣어 줘요)
-// - 토스페이먼츠 연결 전이라 [결제하기]는 입력값만 확인하고 '결제 연결 준비 중' 안내를 보여 줘요.
-//   (주문서를 DB에 만들지 않아요. 토스를 연결하면 여기서 주문서 만들기 → 결제창 열기를 해요)
+// - [결제하기]: 입력 확인 → 서버에 주문서 만들기(결제 대기) → 포트원 결제창(KG이니시스)
+//   → 결제가 끝나면 서버가 포트원에 다시 조회해서 확인(/api/orders/complete) → 주문 완료 페이지
+//   · 결제창을 닫거나 실패하면 그 주문서는 '결제 실패'로 정리하고, 다시 [결제하기]를 누르면 새 주문서로 결제해요.
+//   · 모바일은 결제사 페이지로 갔다가 /payment/complete 로 돌아와서 같은 확인을 해요.
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { completeOrder, createOrder, failOrder } from '../api/orders.js'
+import { DEMO_MODE } from '../api/demoApi.js'
+import { MIN_PAYMENT_AMOUNT, isPortOneConfigured, requestPortOnePayment } from '../utils/portone.js'
 import { useAuthUser } from '../hooks/useAuthUser.js'
 import { useCart } from '../hooks/useCart.js'
 import GoodsSprite from '../components/goods/GoodsSprite.jsx'
@@ -33,20 +38,22 @@ function CheckoutContent({ user }) {
   const [errors, setErrors] = useState({})
   const [agreed, setAgreed] = useState(false)
   const [agreeError, setAgreeError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [notice, setNotice] = useState(null) // { type: 'info' | 'error', text }
+  const [paying, setPaying] = useState(false)
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }))
-    setNotice('')
+    setNotice(null)
   }
 
   // 주소 검색에서 주소를 고르면 우편번호·기본 주소를 함께 채워요.
   const handleAddressSelect = ({ zipCode, address1 }) => {
     setForm((prev) => ({ ...prev, zipCode, address1 }))
     if (errors.address1) setErrors((prev) => ({ ...prev, address1: undefined }))
-    setNotice('')
+    setNotice(null)
   }
 
   // 연락처 칸을 벗어나면 010-1234-5678 모양으로 맞춰 줘요.
@@ -75,8 +82,10 @@ function CheckoutContent({ user }) {
   }
 
   const total = summary.totalPrice + SHIPPING_FEE
+  const belowMinimum = total < MIN_PAYMENT_AMOUNT // 카드 결제 최소 금액보다 적으면 결제할 수 없어요.
 
-  const handlePay = () => {
+  const handlePay = async () => {
+    if (paying) return
     const nextErrors = validateShipping(form)
     setErrors(nextErrors)
     setAgreeError(agreed ? '' : '주문 내용 확인과 결제 진행에 동의해 주십시오.')
@@ -90,7 +99,56 @@ function CheckoutContent({ user }) {
       return
     }
     if (!agreed) return
-    setNotice('결제 연결을 준비하고 있습니다. 토스페이먼츠를 연결하면 이 버튼으로 결제창이 열립니다.')
+
+    if (belowMinimum) {
+      setNotice({ type: 'error', text: `카드 결제는 ${formatWon(MIN_PAYMENT_AMOUNT)}원 이상부터 할 수 있습니다. 물건을 더 담아 주십시오.` })
+      return
+    }
+    if (DEMO_MODE) {
+      setNotice({ type: 'info', text: '체험판에서는 실제 결제를 할 수 없습니다. 내 컴퓨터에서 서버를 켜고 결제해 주십시오.' })
+      return
+    }
+    if (!isPortOneConfigured) {
+      setNotice({
+        type: 'error',
+        text: '결제 설정이 없습니다. client/.env 에 VITE_PORTONE_STORE_ID 와 VITE_PORTONE_CHANNEL_KEY 를 넣고 개발 서버를 다시 켜 주십시오.',
+      })
+      return
+    }
+
+    setPaying(true)
+    setNotice(null)
+    let order
+    try {
+      // 1) 주문서 만들기 (금액·주문명은 서버가 정해요)
+      order = await createOrder({
+        recipient: form.recipient.trim(),
+        phone: formatPhone(form.phone) ?? form.phone,
+        zipCode: form.zipCode,
+        address1: form.address1,
+        address2: form.address2.trim(),
+        memo: form.memo.trim(),
+      })
+
+      // 2) 포트원 결제창 (KG이니시스). 구매자 = 주문한 회원 (연락처는 배송지 연락처)
+      const result = await requestPortOnePayment(order, { name: user.name, phone: form.phone, email: user.email })
+      if (!result) return // 모바일: 결제사 페이지로 이동했어요. 돌아오면 /payment/complete 에서 이어서 처리해요.
+
+      // 3) 결제창 실패·취소
+      if (result.code) {
+        await failOrder(order.orderNumber, { code: result.code, message: result.message }).catch(() => {})
+        setNotice({ type: 'error', text: `결제를 마치지 못했습니다. ${result.message ?? ''}`.trim() })
+        return
+      }
+
+      // 4) 서버 확인 → 주문 완료 페이지
+      const paid = await completeOrder(result.paymentId)
+      navigate(`/orders/${paid.orderNumber}`, { replace: true, state: { justPaid: true } })
+    } catch (err) {
+      setNotice({ type: 'error', text: err.message })
+    } finally {
+      setPaying(false)
+    }
   }
 
   return (
@@ -141,9 +199,11 @@ function CheckoutContent({ user }) {
             ◆ 결제 수단 ◆
           </h2>
           <div className="checkout-payment-box">
-            <p className="checkout-payment-name">토스페이먼츠</p>
-            <p className="checkout-payment-desc">카드 · 계좌이체 · 간편결제 (토스페이, 카카오페이 등)</p>
-            <p className="checkout-payment-ready">결제 연결 준비 중 · 테스트 결제로 연결될 예정입니다.</p>
+            <p className="checkout-payment-name">신용·체크카드</p>
+            <p className="checkout-payment-desc">결제하기를 누르면 KG이니시스 결제창이 열립니다.</p>
+            <p className="checkout-payment-ready">
+              포트원 · KG이니시스 {isPortOneConfigured ? '테스트 결제' : '(결제 설정 필요)'}
+            </p>
           </div>
         </section>
       </div>
@@ -170,6 +230,10 @@ function CheckoutContent({ user }) {
           </div>
         </dl>
 
+        {belowMinimum && (
+          <p className="cart-summary-warn">카드 결제는 {formatWon(MIN_PAYMENT_AMOUNT)}원 이상부터 할 수 있습니다.</p>
+        )}
+
         <label className="checkout-agree">
           <input
             type="checkbox"
@@ -187,12 +251,12 @@ function CheckoutContent({ user }) {
           </p>
         )}
 
-        <button type="button" className="pixel-btn pixel-btn-seal cart-order-btn" onClick={handlePay}>
-          {formatWon(total)}원 결제하기
+        <button type="button" className="pixel-btn pixel-btn-seal cart-order-btn" onClick={handlePay} disabled={paying}>
+          {paying ? '결제 진행 중...' : `${formatWon(total)}원 결제하기`}
         </button>
         {notice && (
-          <p className="checkout-notice" role="status">
-            {notice}
+          <p className={`checkout-notice is-${notice.type}`} role={notice.type === 'error' ? 'alert' : 'status'}>
+            {notice.text}
           </p>
         )}
       </aside>

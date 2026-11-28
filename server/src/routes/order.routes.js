@@ -5,7 +5,7 @@ import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth.js';
 import {
   createOrder,
-  confirmOrder,
+  completeOrder,
   failOrder,
   listMyOrders,
   getMyOrder,
@@ -20,7 +20,7 @@ router.route('/')
   .get(listMyOrders) //  GET  /api/orders   내 주문 목록 (결제된 주문만)
   .post(createOrder); // POST /api/orders   장바구니로 주문서 만들기 (결제 대기)
 
-router.post('/confirm', confirmOrder); //                 POST /api/orders/confirm             결제 승인 { paymentKey, orderId, amount }
+router.post('/complete', completeOrder); //               POST /api/orders/complete            결제 완료 확인 { paymentId } (포트원 조회)
 router.get('/:orderNumber', getMyOrder); //               GET  /api/orders/:orderNumber        내 주문 상세
 router.post('/:orderNumber/fail', failOrder); //          POST /api/orders/:orderNumber/fail   결제 실패 기록 { code, message }
 router.post('/:orderNumber/cancel', cancelMyOrder); //    POST /api/orders/:orderNumber/cancel 주문 취소 { reason } (결제 완료일 때만)

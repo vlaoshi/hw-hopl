@@ -257,6 +257,13 @@ export async function demoRequest(path, { method = 'GET', body, token } = {}) {
     return { success: true, data: product }
   }
 
+  // 주문 내역: 체험판에서는 결제를 할 수 없어서 늘 빈 목록이에요.
+  if (method === 'GET' && path.startsWith('/orders?')) {
+    demoUserId(token)
+    const counts = { all: 0, paid: 0, preparing: 0, shipping: 0, delivered: 0, cancelled: 0 }
+    return { success: true, data: [], counts, pagination: { page: 1, limit: 5, total: 0, totalPages: 0 } }
+  }
+
   // 장바구니 (브라우저 저장소에 회원별로 저장)
   if (path === '/cart' || path.startsWith('/cart/')) return handleCart(path, method, body, token)
 

@@ -13,8 +13,12 @@ import ProductDetailPage from './pages/ProductDetailPage.jsx'
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx'
 import AdminProductsPage from './pages/AdminProductsPage.jsx'
 import AdminProductFormPage from './pages/AdminProductFormPage.jsx'
+import AdminOrdersPage from './pages/AdminOrdersPage.jsx'
 import CartPage from './pages/CartPage.jsx'
 import CheckoutPage from './pages/CheckoutPage.jsx'
+import OrderDetailPage from './pages/OrderDetailPage.jsx'
+import OrdersPage from './pages/OrdersPage.jsx'
+import PaymentCompletePage from './pages/PaymentCompletePage.jsx'
 
 function App() {
   return (
@@ -30,7 +34,9 @@ function App() {
         <Route path="picks" element={<ComingSoonPage title="점장 추천상품" />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="checkout" element={<CheckoutPage />} />
-        <Route path="orders" element={<ComingSoonPage title="주문 내역" />} />
+        <Route path="payment/complete" element={<PaymentCompletePage />} />
+        <Route path="orders/:orderNumber" element={<OrderDetailPage />} />
+        <Route path="orders" element={<OrdersPage />} />
         <Route path="mypage" element={<ComingSoonPage title="내 정보" />} />
 
         {/* 하플 상점주 대시보드 (관리자) */}
@@ -38,7 +44,7 @@ function App() {
         <Route path="admin/products" element={<AdminProductsPage />} />
         <Route path="admin/products/new" element={<AdminProductFormPage />} />
         <Route path="admin/products/:id/edit" element={<AdminProductFormPage />} />
-        <Route path="admin/orders" element={<ComingSoonPage title="주문 관리" />} />
+        <Route path="admin/orders" element={<AdminOrdersPage />} />
         <Route path="admin/sales" element={<ComingSoonPage title="매출 분석" />} />
         <Route path="admin/merchants" element={<ComingSoonPage title="교역 상인 관리" />} />
 

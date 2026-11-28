@@ -8,7 +8,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { useAdminProducts } from '../hooks/useAdminProducts.js'
 import { deleteProduct, updateProduct } from '../api/adminProducts.js'
 import AdminGuard from '../components/admin/AdminGuard.jsx'
-import Pagination from '../components/admin/Pagination.jsx'
+import Pagination from '../components/common/Pagination.jsx'
 import GoodsSprite from '../components/goods/GoodsSprite.jsx'
 import StockBadge from '../components/goods/StockBadge.jsx'
 import { formatWon } from '../utils/format.js'

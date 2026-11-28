@@ -178,51 +178,6 @@
   opacity: 0.5;
 }
 
-.admin-pagination {
-  margin-top: 18px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-}
-
-.admin-page-btn {
-  min-width: 36px;
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 13px;
-  color: #f4ecd8;
-  background: #1b1030;
-  border: 0;
-  box-shadow: inset 0 0 0 2px #6b4a8a;
-  cursor: pointer;
-}
-
-.admin-page-btn:hover:not(:disabled) {
-  color: #ffd966;
-  box-shadow: inset 0 0 0 2px #e8c25a;
-}
-
-.admin-page-btn:focus-visible {
-  outline: 3px dashed #e8c25a;
-  outline-offset: 2px;
-}
-
-.admin-page-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-/* 지금 보고 있는 쪽 */
-.admin-page-number.is-current,
-.admin-page-number.is-current:disabled {
-  opacity: 1;
-  color: #1b1030;
-  background: #e8c25a;
-  box-shadow: inset 0 0 0 2px #a8782a;
-  font-weight: 700;
-}
-
 /* --- 등록·수정 양식 --- */
 .admin-form-inner {
   max-width: 820px;

@@ -1,0 +1,721 @@
+/* =========================================================
+   상점주 주문 관리 (/admin/orders) - 상품 관리(AdminProductsPage.css)의 검은 게임 화면 틀을 같이 써요.
+   ========================================================= */
+
+.admin-orders-inner {
+  max-width: 1180px;
+}
+
+/* 금화 버튼 (주요 처리: 상품 준비 시작 · 배송 시작 · 배송 완료 처리) */
+.admin-small-btn.is-primary {
+  color: #2a1608;
+  background: var(--gold, #e8c25a);
+  box-shadow: 0 0 0 2px #a8782a;
+}
+
+.admin-small-btn.is-primary:hover,
+.admin-small-btn.is-primary:focus-visible {
+  color: #2a1608;
+  background: #f5d77a;
+  box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* --- 오늘 요약 --- */
+.ao-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0 6px;
+}
+
+.ao-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  font: inherit;
+  text-align: left;
+  color: #ffffff;
+  background: #000000;
+  border: 0;
+  box-shadow:
+    0 0 0 3px #ffffff,
+    0 0 0 6px #000000;
+}
+
+.ao-summary-label {
+  font-size: 13px;
+  color: #c9d1f0;
+}
+
+.ao-summary-value {
+  font-size: 24px;
+  color: #ffd966;
+}
+
+/* 처리할 새 주문: 누르면 '결제 완료' 탭으로. 새 주문이 있으면 붉은 테두리로 눈에 띄게 */
+.ao-summary-card.is-todo {
+  cursor: pointer;
+}
+
+.ao-summary-card.is-todo.has-todo {
+  box-shadow:
+    0 0 0 3px #ff7a6b,
+    0 0 0 6px #000000;
+}
+
+.ao-summary-card.is-todo.has-todo .ao-summary-value {
+  color: #ff9a8b;
+}
+
+.ao-summary-card.is-todo:hover,
+.ao-summary-card.is-todo:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px #ffd966,
+    0 0 0 6px #000000;
+}
+
+/* --- 상태 탭 --- */
+.ao-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 6px;
+}
+
+.ao-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #c9d1f0;
+  background: #000000;
+  border: 0;
+  box-shadow: inset 0 0 0 2px #3a4268;
+  cursor: pointer;
+}
+
+.ao-tab-count {
+  min-width: 22px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  color: #ffffff;
+  background: #3a4268;
+}
+
+.ao-tab:hover,
+.ao-tab:focus-visible {
+  outline: none;
+  color: #ffd966;
+  box-shadow: inset 0 0 0 2px #6b4a8a;
+}
+
+.ao-tab.is-current {
+  color: #2a1608;
+  background: var(--gold, #e8c25a);
+  box-shadow:
+    inset -3px -3px 0 #a8782a,
+    inset 3px 3px 0 #fff0b3;
+}
+
+.ao-tab.is-current .ao-tab-count {
+  color: #ffd966;
+  background: #2a1608;
+}
+
+/* --- 검색 · 기간 --- */
+.ao-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 6px;
+}
+
+.ao-search {
+  flex: 1 1 360px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap; /* 좁은 화면에서는 버튼이 다음 줄로 */
+  gap: 8px;
+}
+
+.ao-search input {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: #ffffff;
+  background: #10162e;
+  border: 0;
+  box-shadow: inset 0 0 0 2px #6b7394;
+}
+
+.ao-search input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #ffd966;
+}
+
+.ao-periods {
+  display: flex;
+  gap: 4px;
+}
+
+.ao-period {
+  padding: 7px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c9d1f0;
+  background: transparent;
+  border: 0;
+  box-shadow: inset 0 0 0 2px #3a4268;
+  cursor: pointer;
+}
+
+.ao-period.is-current {
+  color: #ffd966;
+  box-shadow: inset 0 0 0 2px #ffd966;
+}
+
+/* --- 목록 칸 --- */
+.ao-panel {
+  padding: 16px 18px 20px;
+}
+
+.ao-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.ao-bulk-count {
+  margin-right: auto;
+  font-size: 13px;
+  color: #c9d1f0;
+}
+
+.ao-table-wrap {
+  overflow-x: auto;
+}
+
+.ao-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: #e8ecff;
+}
+
+.ao-table.is-loading {
+  opacity: 0.5;
+}
+
+.ao-table th {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+  color: #8f99c4;
+  border-bottom: 2px solid #3a4268;
+  white-space: nowrap;
+}
+
+.ao-table td {
+  padding: 10px;
+  vertical-align: middle;
+  border-bottom: 2px dashed #262c4a;
+}
+
+.ao-row:hover td {
+  background: #0d1228;
+}
+
+.ao-row.is-selected td {
+  background: #1a1640;
+}
+
+.ao-row.is-open td {
+  border-bottom-color: transparent;
+  background: #120d24;
+}
+
+.ao-col-check {
+  width: 34px;
+}
+
+.ao-col-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #e8c25a;
+}
+
+.ao-col-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.ao-col-action {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.ao-col-action .admin-small-btn + .admin-small-btn {
+  margin-left: 6px;
+}
+
+.ao-open {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.ao-date {
+  font-size: 12px;
+  color: #c9d1f0;
+}
+
+.ao-number {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #ffd966;
+}
+
+.ao-open:hover .ao-number,
+.ao-open:focus-visible .ao-number {
+  text-decoration: underline;
+}
+
+.ao-open:focus-visible {
+  outline: 2px dashed #ffd966;
+  outline-offset: 3px;
+}
+
+.ao-customer {
+  display: block;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.ao-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #8f99c4;
+}
+
+.ao-goods {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ao-goods-art {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+
+.ao-goods-sprite {
+  width: 32px;
+  height: 32px;
+}
+
+.ao-goods-name {
+  display: block;
+  color: #ffffff;
+  word-break: keep-all;
+}
+
+/* 주문 상태 딱지 (상점주 화면) */
+.admin-order-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #ffffff;
+  background: #3a4268;
+}
+
+.admin-order-badge.is-paid {
+  color: #2a0a0a;
+  background: #ff9a8b; /* 새 주문: 눈에 띄게 */
+}
+
+.admin-order-badge.is-preparing {
+  color: #2a1608;
+  background: #f0a43a;
+}
+
+.admin-order-badge.is-shipping {
+  color: #0f1a3a;
+  background: #7fb2ff;
+}
+
+.admin-order-badge.is-delivered {
+  color: #0f2a17;
+  background: #4ade80;
+}
+
+.admin-order-badge.is-cancelled,
+.admin-order-badge.is-payment_failed,
+.admin-order-badge.is-awaiting_payment {
+  color: #e0e0e0;
+  background: #4a4d58;
+}
+
+/* --- 펼친 상세 --- */
+.ao-detail-row td {
+  padding: 0 10px 16px;
+  background: #120d24;
+}
+
+.aod {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px;
+  box-shadow: inset 0 0 0 2px #6b4a8a;
+}
+
+.aod-block {
+  min-width: 0;
+}
+
+.aod-items {
+  grid-column: 1 / -1;
+}
+
+.aod-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #ffd966;
+}
+
+.aod-copy {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.aod-item-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aod-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto 100px;
+  align-items: center;
+  gap: 10px;
+}
+
+.aod-item-art {
+  width: 36px;
+  height: 36px;
+}
+
+.aod-item-sprite {
+  width: 28px;
+  height: 28px;
+}
+
+.aod-item-name small {
+  display: block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #8f99c4;
+}
+
+.aod-item-qty {
+  color: #c9d1f0;
+  white-space: nowrap;
+}
+
+.aod-item-total {
+  text-align: right;
+}
+
+.aod-sum {
+  margin: 10px 0 0;
+  text-align: right;
+  color: #c9d1f0;
+}
+
+.aod-sum strong {
+  color: #ffd966;
+}
+
+.aod-info {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 5px 10px;
+}
+
+.aod-info dt {
+  color: #8f99c4;
+}
+
+.aod-info dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.aod-info a {
+  color: #ffd966;
+}
+
+.aod-memo {
+  color: #ffd966;
+  font-weight: 700;
+}
+
+.aod-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.aod-history li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.aod-history-time {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #8f99c4;
+}
+
+.aod-history-by {
+  font-size: 11px;
+  color: #c9d1f0;
+}
+
+.aod-history-note {
+  width: 100%;
+  padding-left: 2px;
+  font-size: 12px;
+  color: #e8ecff;
+}
+
+/* --- 팝업 (배송 시작 · 주문 취소) --- */
+.admin-dialog {
+  width: min(460px, calc(100vw - 32px));
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+}
+
+.admin-dialog::backdrop {
+  background: rgba(4, 6, 16, 0.75);
+}
+
+.admin-dialog-body {
+  margin: 6px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-family: var(--font-pixel);
+  background: #000000;
+  box-shadow:
+    0 0 0 3px #ffffff,
+    0 0 0 6px #000000;
+}
+
+.admin-dialog-title {
+  margin: 0;
+  font-size: 17px;
+  text-align: center;
+  color: #ffd966;
+}
+
+.admin-dialog-title.is-danger {
+  color: #ff9a8b;
+}
+
+.admin-dialog-desc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #c9d1f0;
+  word-break: keep-all;
+}
+
+.admin-dialog-desc strong {
+  color: #ffffff;
+}
+
+.admin-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+  color: #c9d1f0;
+}
+
+.admin-dialog-field select,
+.admin-dialog-field input {
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 14px;
+  color: #ffffff;
+  background: #10162e;
+  border: 0;
+  box-shadow: inset 0 0 0 2px #6b7394;
+}
+
+.admin-dialog-field input:disabled {
+  opacity: 0.5;
+}
+
+.admin-dialog-field select:focus,
+.admin-dialog-field input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #ffd966;
+}
+
+.admin-dialog-reasons {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.admin-dialog-reasons legend {
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.admin-reason {
+  padding: 5px 10px;
+  font-size: 13px;
+  color: #c9d1f0;
+  box-shadow: inset 0 0 0 2px #3a4268;
+  cursor: pointer;
+}
+
+.admin-reason input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.admin-reason.is-selected {
+  color: #ffffff;
+  box-shadow: inset 0 0 0 2px #ff9a8b;
+}
+
+.admin-reason:has(input:focus-visible) {
+  outline: 2px dashed #ffd966;
+  outline-offset: 2px;
+}
+
+.admin-dialog-error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ff9a8b;
+}
+
+.admin-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* --- 반응형: 좁은 화면에서는 표를 카드로 --- */
+@media (max-width: 860px) {
+  .ao-summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ao-summary-card.is-todo {
+    grid-column: 1 / -1;
+  }
+
+  .ao-table thead {
+    display: none;
+  }
+
+  .ao-table,
+  .ao-table tbody,
+  .ao-table tr,
+  .ao-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .ao-row {
+    position: relative;
+    padding: 10px 0 10px 34px;
+    border-bottom: 2px dashed #262c4a;
+  }
+
+  .ao-row td {
+    padding: 3px 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .ao-row .ao-col-check {
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: auto;
+  }
+
+  .ao-row .ao-col-action {
+    width: auto;
+    padding-top: 8px;
+  }
+
+  .ao-detail-row td {
+    padding: 0 0 14px;
+  }
+
+  .aod {
+    grid-template-columns: 1fr;
+  }
+
+  .aod-item {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+  }
+
+  .aod-item-qty {
+    grid-column: 2;
+  }
+}

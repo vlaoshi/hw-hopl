@@ -1,17 +1,18 @@
 // 손님 주문 API - 로그인한 회원이 자기 주문만 다뤄요. (order.routes.js 에서 requireAuth)
 //
-// 주문 흐름 (토스페이먼츠 결제창 기준)
-//   1) POST /api/orders           장바구니 + 배송지 → 주문서(결제 대기). 응답의 orderNumber·orderName·totalAmount 로 결제창을 열어요.
-//   2) 결제창에서 성공 → POST /api/orders/confirm { paymentKey, orderId, amount }
-//      금액 확인 → 재고 줄이기 → 토스 승인 → 결제 완료 + 장바구니에서 주문한 물건 빼기
+// 주문 흐름 (포트원 V2 · KG이니시스 결제창 기준)
+//   1) POST /api/orders           장바구니 + 배송지 → 주문서(결제 대기). 응답의 orderNumber(=포트원 paymentId)·orderName·totalAmount 로 결제창을 열어요.
+//   2) 결제창에서 결제 끝 → POST /api/orders/complete { paymentId }
+//      포트원 결제 조회 → 상태·금액 확인 → 재고 줄이기 → 결제 완료 + 장바구니에서 주문한 물건 빼기
+//      (금액이 다르거나 재고가 모자라면 결제를 자동 취소(환불)하고 결제 실패)
 //   2') 결제창에서 실패·중단 → POST /api/orders/:orderNumber/fail { code, message } → 결제 실패
 //   3) GET /api/orders, GET /api/orders/:orderNumber  내 주문 목록·상세
 //   4) POST /api/orders/:orderNumber/cancel { reason }  결제 완료일 때만 취소 (결제 취소 + 재고 되돌림)
 import Cart from '../models/Cart.js';
-import Order, { CUSTOMER_VISIBLE_STATUSES } from '../models/Order.js';
+import Order, { CUSTOMER_VISIBLE_STATUSES, MIN_PAYMENT_AMOUNT } from '../models/Order.js';
 import { getSaleStatus } from '../models/Product.js';
 import { AppError } from '../utils/AppError.js';
-import { TossError, confirmPayment } from '../utils/tossPayments.js';
+import { PortOneError, cancelPayment, describePaymentMethod, getPayment } from '../utils/portone.js';
 import {
   cancelOrder as cancelOrderFlow,
   deductStock,
@@ -69,6 +70,10 @@ export async function createOrder(req, res) {
 
   const itemsTotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
   const shippingFee = 0; // 배송비: 항상 무료
+  // 결제창을 열기 전에 최소 금액을 확인해요. (KG이니시스 카드 결제는 1,000원부터)
+  if (itemsTotal + shippingFee < MIN_PAYMENT_AMOUNT) {
+    throw new AppError(400, `카드 결제는 ${MIN_PAYMENT_AMOUNT.toLocaleString('ko-KR')}원 이상부터 할 수 있어요. 물건을 더 담아 주세요.`);
+  }
   const order = await Order.create({
     user: req.user._id,
     orderName: items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name,
@@ -82,71 +87,116 @@ export async function createOrder(req, res) {
   res.status(201).json({ success: true, data: toOrderResponse(order) });
 }
 
-// [결제 승인] POST /api/orders/confirm  body: { paymentKey, orderId(=주문번호), amount }
-export async function confirmOrder(req, res) {
-  const { paymentKey, orderId, amount } = req.body ?? {};
-  if (typeof paymentKey !== 'string' || !paymentKey || typeof orderId !== 'string' || !Number.isInteger(amount)) {
-    throw new AppError(400, 'paymentKey, orderId, amount 를 모두 보내 주세요.');
-  }
-  const order = await findMyOrder(req, orderId);
+// [결제 완료 확인] POST /api/orders/complete  body: { paymentId(=주문번호) }
+// 결제창(포트원 KG이니시스)에서 결제가 끝나면 화면이 이 주소를 불러요.
+// 화면이 받은 결과는 믿지 않고, 서버가 포트원에 직접 조회해서 확인해요.
+//   1) 포트원 결제 조회 → 상태가 PAID 인가?
+//   2) 결제 금액·통화가 주문서와 같은가? (다르면 결제를 취소하고 결제 실패)
+//   3) 재고 줄이기 (모자라면 결제를 취소(환불)하고 결제 실패)
+//   4) 결제 완료 + 장바구니에서 주문한 물건 빼기
+export async function completeOrder(req, res) {
+  const { paymentId } = req.body ?? {};
+  if (typeof paymentId !== 'string' || !paymentId) throw new AppError(400, 'paymentId 를 보내 주세요.');
+  const order = await findMyOrder(req, paymentId);
 
-  // 이미 같은 결제로 승인된 주문이면 그대로 돌려줘요. (새로고침으로 두 번 와도 안전하게)
+  // 이미 처리된 주문 (새로고침, 결제창 결과와 모바일 돌아오기가 함께 온 경우 등)
   if (order.status !== 'awaiting_payment') {
-    if (order.payment.paymentKey === paymentKey && order.payment.status === 'done') {
-      return res.json({ success: true, data: toOrderResponse(order) });
-    }
+    if (order.status === 'paid' || order.payment.status === 'done') return res.json({ success: true, data: toOrderResponse(order) });
     throw new AppError(409, '이미 처리된 주문이에요.');
   }
-  // 금액 확인: 결제창에서 넘어온 금액이 주문서 금액과 다르면 승인하지 않아요. (금액 조작 방지)
-  if (amount !== order.totalAmount) throw new AppError(400, '결제 금액이 주문 금액과 맞지 않아요.');
 
-  const fail = async (code, message) => {
-    order.payment.status = 'failed';
-    order.payment.failCode = code;
-    order.payment.failMessage = message;
-    order.changeStatus('payment_failed', { by: 'system', note: message });
-    await order.save();
-  };
-
-  // 1) 재고 줄이기 (모자라면 결제 승인 전에 멈춰요 → 손님 돈은 빠져나가지 않아요)
-  try {
-    await deductStock(order.items);
-  } catch (err) {
-    await fail('OUT_OF_STOCK', err.message);
-    throw err;
-  }
-
-  // 2) 토스 승인 (실패하면 줄였던 재고를 되돌려요)
+  // 1) 포트원에서 결제 조회
   let payment;
   try {
-    payment = await confirmPayment({ paymentKey, orderId: order.orderNumber, amount: order.totalAmount });
+    payment = await getPayment(order.orderNumber);
   } catch (err) {
-    await restoreStock(order.items);
-    if (err instanceof TossError) {
-      await fail(err.code, err.message);
-      throw new AppError(400, `결제 승인에 실패했어요. (${err.message})`);
-    }
+    if (err instanceof PortOneError && err.status === 404) throw new AppError(400, '결제 정보를 찾을 수 없어요. 결제를 다시 진행해 주세요.');
+    if (err instanceof PortOneError) throw new AppError(502, `결제를 확인하지 못했어요. (${err.message})`);
     throw err;
   }
+  if (payment.status === 'READY' || payment.status === 'PAY_PENDING') {
+    throw new AppError(409, '결제가 아직 끝나지 않았어요. 결제창에서 결제를 마쳐 주세요.');
+  }
+  if (payment.status !== 'PAID') {
+    await markFailed(order, payment.status, payment.failure?.pgMessage || payment.failure?.reason || '결제가 완료되지 않았어요.');
+    throw new AppError(400, '결제가 완료되지 않았어요. 다시 시도해 주세요.');
+  }
 
-  // 3) 결제 완료
-  order.payment.status = 'done';
-  order.payment.paymentKey = payment.paymentKey ?? paymentKey;
-  order.payment.method = payment.method;
-  order.payment.approvedAt = payment.approvedAt ? new Date(payment.approvedAt) : new Date();
-  order.payment.receiptUrl = payment.receipt?.url;
-  order.stockDeducted = true;
-  order.changeStatus('paid', { by: 'system', note: '결제 승인' });
-  await order.save();
+  // 같은 주문을 두 군데서 동시에 확인하지 않도록 '확인 중'으로 먼저 잡아 둬요. (한 번만 처리)
+  const claimed = await Order.findOneAndUpdate(
+    { _id: order._id, status: 'awaiting_payment', 'payment.status': { $in: ['ready', 'failed'] } },
+    { $set: { 'payment.status': 'processing' } },
+    { returnDocument: 'after' },
+  );
+  if (!claimed) {
+    const latest = await Order.findById(order._id);
+    if (latest.status === 'paid') return res.json({ success: true, data: toOrderResponse(latest) });
+    throw new AppError(409, '결제를 확인하는 중이에요. 잠시 후 주문 내역을 확인해 주세요.');
+  }
 
-  // 4) 장바구니에서 주문한 물건 빼기 (주문 뒤 새로 담은 물건은 남겨요)
+  // 2) 금액·통화 확인 (다르면 결제를 되돌려요)
+  if (payment.amount?.total !== claimed.totalAmount || payment.currency !== 'KRW') {
+    await refundAndFail(claimed, 'AMOUNT_MISMATCH', '결제 금액이 주문 금액과 맞지 않아 결제를 취소했어요.');
+    throw new AppError(400, '결제 금액이 주문 금액과 맞지 않아 결제를 취소했어요.');
+  }
+
+  // 3) 재고 줄이기 (모자라면 결제를 되돌려요)
+  try {
+    await deductStock(claimed.items);
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    await refundAndFail(claimed, 'OUT_OF_STOCK', `${err.message} 결제는 자동으로 취소했어요.`);
+    throw new AppError(409, `${err.message} 결제는 자동으로 취소했어요.`);
+  }
+
+  // 4) 결제 완료
+  claimed.payment.status = 'done';
+  claimed.payment.transactionId = payment.transactionId;
+  claimed.payment.pgTxId = payment.pgTxId;
+  claimed.payment.method = describePaymentMethod(payment.method);
+  claimed.payment.approvedAt = payment.paidAt ? new Date(payment.paidAt) : new Date();
+  claimed.payment.receiptUrl = payment.receiptUrl;
+  claimed.stockDeducted = true;
+  claimed.changeStatus('paid', { by: 'system', note: '결제 완료' });
+  await claimed.save();
+
+  // 장바구니에서 주문한 물건 빼기 (주문 뒤 새로 담은 물건은 남겨요)
   const cart = await Cart.findOne({ user: req.user._id });
   if (cart) {
-    order.items.forEach((item) => cart.removeItem(item.product));
+    claimed.items.forEach((item) => cart.removeItem(item.product));
     await cart.save();
   }
 
-  res.json({ success: true, data: toOrderResponse(order) });
+  res.json({ success: true, data: toOrderResponse(claimed) });
+}
+
+// 결제 실패로 정리 (결제가 안 된 경우)
+async function markFailed(order, code, message) {
+  order.payment.status = 'failed';
+  order.payment.failCode = String(code).slice(0, 100);
+  order.payment.failMessage = String(message).slice(0, 200);
+  order.changeStatus('payment_failed', { by: 'system', note: message });
+  await order.save();
+}
+
+// 결제는 됐지만 주문을 받을 수 없을 때: 포트원 결제 취소(환불) → 결제 실패로 정리
+async function refundAndFail(order, code, message) {
+  let refunded = true;
+  try {
+    await cancelPayment(order.orderNumber, { reason: message, requester: 'ADMIN' });
+  } catch (err) {
+    refunded = err instanceof PortOneError && err.type === 'PAYMENT_ALREADY_CANCELLED';
+    console.error('[ORDER] 자동 결제 취소 실패:', order.orderNumber, err.message);
+  }
+  order.payment.status = refunded ? 'canceled' : 'done'; // 환불을 못 했으면 상점주가 확인할 수 있게 결제 완료로 남겨요.
+  order.payment.failCode = code;
+  order.payment.failMessage = refunded ? message : `${message} (자동 환불 실패 - 상점주 확인 필요)`;
+  if (refunded) {
+    order.payment.canceledAt = new Date();
+    order.payment.cancelReason = message;
+  }
+  order.changeStatus('payment_failed', { by: 'system', note: order.payment.failMessage });
+  await order.save();
 }
 
 // [결제 실패 기록] POST /api/orders/:orderNumber/fail  body: { code?, message? }
@@ -164,17 +214,31 @@ export async function failOrder(req, res) {
   res.json({ success: true, data: toOrderResponse(order) });
 }
 
-// [내 주문 목록] GET /api/orders?page=1&limit=10 - 결제된 주문만, 최근 순
+// [내 주문 목록] GET /api/orders?status=&page=1&limit=10 - 결제된 주문만, 최근 순
+// - status: paid·preparing·shipping·delivered·cancelled 중 하나로 거르기 (없거나 all 이면 전체)
+// - counts: 상태별 건수 { all, paid, preparing, shipping, delivered, cancelled } (주문 내역 탭에 써요)
 export async function listMyOrders(req, res) {
   const { page, limit, skip } = readPaging(req.query, 10);
-  const filter = { user: req.user._id, status: { $in: CUSTOMER_VISIBLE_STATUSES } };
-  const [orders, total] = await Promise.all([
+  const { status } = req.query;
+  if (status && status !== 'all' && !CUSTOMER_VISIBLE_STATUSES.includes(status)) {
+    throw new AppError(400, `주문 상태는 ${CUSTOMER_VISIBLE_STATUSES.join(', ')}, all 중 하나로 보내 주세요.`);
+  }
+  const mine = { user: req.user._id, status: { $in: CUSTOMER_VISIBLE_STATUSES } };
+  const filter = status && status !== 'all' ? { user: req.user._id, status } : mine;
+
+  const [orders, total, grouped] = await Promise.all([
     Order.find(filter).sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit),
     Order.countDocuments(filter),
+    Order.aggregate([{ $match: mine }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
   ]);
+  const counts = Object.fromEntries(CUSTOMER_VISIBLE_STATUSES.map((key) => [key, 0]));
+  grouped.forEach(({ _id, count }) => (counts[_id] = count));
+  counts.all = Object.values(counts).reduce((sum, n) => sum + n, 0);
+
   res.json({
     success: true,
     data: orders.map(toOrderSummary),
+    counts,
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 }

@@ -1,6 +1,6 @@
 // 주문 규칙 모음 - 손님 주문 API(order.controller)와 상점주 주문 관리(adminOrder.controller)가 함께 써요.
 // - 재고 줄이기·되돌리기
-// - 주문 취소 (토스 결제 취소 → 재고 되돌리기 → 주문 취소 상태)
+// - 주문 취소 (포트원 결제 취소 → 재고 되돌리기 → 주문 취소 상태)
 // - 응답 모양 맞추기
 //
 // ※ 로컬 MongoDB 는 트랜잭션을 쓸 수 없는 단독 서버라,
@@ -8,7 +8,7 @@
 import Product from '../models/Product.js';
 import { ORDER_STATUS_LABEL } from '../models/Order.js';
 import { AppError } from '../utils/AppError.js';
-import { TossError, cancelPayment } from '../utils/tossPayments.js';
+import { PortOneError, cancelPayment } from '../utils/portone.js';
 
 // 주문한 물건만큼 재고를 줄여요. 하나라도 모자라면 이미 줄인 것을 되돌리고 409 를 던져요.
 export async function deductStock(items) {
@@ -33,7 +33,7 @@ export async function restoreStock(items) {
   }
 }
 
-// 주문 취소: 결제 취소(토스) → 재고 되돌리기(한 번만) → '주문 취소'
+// 주문 취소: 결제 취소(포트원) → 재고 되돌리기(한 번만) → '주문 취소'
 // by: 'customer' | 'admin'
 export async function cancelOrder(order, { by, reason }) {
   if (!order.canChangeTo('cancelled')) {
@@ -41,13 +41,19 @@ export async function cancelOrder(order, { by, reason }) {
   }
   const cancelReason = reason?.trim() || (by === 'admin' ? '상점주 취소' : '고객 요청 취소');
 
-  // 1) 결제 취소 (승인된 결제가 있을 때만)
-  if (order.payment?.paymentKey && order.payment.status === 'done') {
+  // 1) 결제 취소 (결제 완료된 주문만). 포트원 결제 ID = 주문번호
+  if (order.payment?.status === 'done') {
     try {
-      await cancelPayment(order.payment.paymentKey, cancelReason);
+      await cancelPayment(order.orderNumber, { reason: cancelReason, requester: by === 'admin' ? 'ADMIN' : 'CUSTOMER' });
     } catch (err) {
-      if (err instanceof TossError) throw new AppError(502, `결제를 취소하지 못했어요. (${err.message})`);
-      throw err;
+      // 이미 포트원에서 취소된 결제면 계속 진행해요. (관리자 콘솔에서 먼저 취소한 경우 등)
+      if (err instanceof PortOneError && err.type === 'PAYMENT_ALREADY_CANCELLED') {
+        // 그대로 아래로
+      } else if (err instanceof PortOneError) {
+        throw new AppError(502, `결제를 취소하지 못했어요. (${err.message})`);
+      } else {
+        throw err;
+      }
     }
     order.payment.status = 'canceled';
     order.payment.canceledAt = new Date();
@@ -86,6 +92,10 @@ export function toOrderSummary(order) {
     status: json.status,
     statusLabel: ORDER_STATUS_LABEL[json.status],
     createdAt: json.createdAt,
+    // 주문 상품 (목록 카드·다시 담기용: 이름·이미지·가격·수량만)
+    items: json.items.map(({ product, name, image, price, quantity }) => ({ product, name, image, price, quantity })),
+    // 마지막으로 상태가 바뀐 시각 (예: 배송완료 날짜, 취소 날짜)
+    statusChangedAt: json.statusHistory?.at(-1)?.at ?? json.updatedAt,
     ...(json.user && typeof json.user === 'object' && 'name' in json.user
       ? { customer: { _id: json.user._id, name: json.user.name, email: json.user.email } }
       : {}),

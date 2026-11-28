@@ -1,8 +1,10 @@
-// 페이지 이동 버튼 (상점주 화면 공용)
+// 페이지 이동 버튼 (상점주·손님 화면 공용)
 // - 사용 예) <Pagination page={2} totalPages={7} onChange={(next) => ...} />
 // - 버튼: [« 처음] [‹ 이전] [1] [2] [3] [4] [5] [다음 ›] [끝 »]
 //   번호는 지금 페이지를 가운데에 두고 최대 5개까지 보여 줘요.
 // - 페이지가 1개 이하면 아무것도 그리지 않아요.
+import './Pagination.css'
+
 const WINDOW = 5
 
 function pageNumbers(page, totalPages) {

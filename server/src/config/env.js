@@ -28,9 +28,9 @@ export const env = {
     .filter(Boolean),
   // Cloudinary 클라우드 이름 (상품 실물 사진 주소가 우리 계정 것인지 확인할 때 써요. 비밀값 아님)
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
-  // 토스페이먼츠 결제 (시크릿 키는 서버에만 두는 비밀값이에요. 없으면 결제 승인·취소를 할 수 없어요)
-  tossSecretKey: process.env.TOSS_SECRET_KEY || '',
-  tossApiBase: process.env.TOSS_API_BASE || 'https://api.tosspayments.com', // 테스트용 가짜 서버로 바꿀 때만 써요
+  // 포트원 V2 결제 (API Secret 은 서버에만 두는 비밀값이에요. 없으면 결제 확인·취소를 할 수 없어요)
+  portoneApiSecret: process.env.PORTONE_API_SECRET || '',
+  portoneApiBase: process.env.PORTONE_API_BASE || 'https://api.portone.io', // 테스트용 가짜 서버로 바꿀 때만 써요
 };
 
 export const isProduction = env.nodeEnv === 'production';
